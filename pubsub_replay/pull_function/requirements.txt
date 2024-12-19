@@ -1,0 +1,3 @@
+# requirements.txt
+google-cloud-pubsub==2.18.4
+functions-framework==3.4.0
