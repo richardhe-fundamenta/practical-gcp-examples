@@ -1,10 +1,11 @@
 # publish_messages.py
-
-from google.cloud import pubsub_v1
+import uuid
 import json
 import argparse
-from pathlib import Path
 import time
+
+from google.cloud import pubsub_v1
+from pathlib import Path
 
 
 class PubSubPublisher:
@@ -33,7 +34,6 @@ def main():
     parser.add_argument('--project-id', required=True, help='GCP Project ID')
     parser.add_argument('--topic-id', required=True, help='PubSub Topic ID')
     parser.add_argument('--input-file', required=True, help='Path to JSONL file containing messages')
-    parser.add_argument('--delay', type=float, default=1.0, help='Delay between messages in seconds (default: 1.0)')
 
     args = parser.parse_args()
 
@@ -49,16 +49,16 @@ def main():
     messages = load_messages(args.input_file)
     print(f"Loaded {len(messages)} messages from {args.input_file}")
 
-    for i, message in enumerate(messages, 1):
-        try:
-            message_id = publisher.publish_message(message)
-            print(f"Published message {i}/{len(messages)} - ID: {message_id}, State: {message.get('state')}")
+    for _ in range(100):  # fake more messages like this so that we can see the replay more easily
+        rand_transaction_id = uuid.uuid4().hex  # generate a random transaction id for each set of messages
+        for i, message in enumerate(messages, 1):
+            message['transaction_id'] = rand_transaction_id
+            try:
+                message_id = publisher.publish_message(message)
+                print(f"Published message {i}/{len(messages)} - ID: {message_id}, State: {message.get('state')}")
 
-            if i < len(messages):  # Don't delay after the last message
-                time.sleep(args.delay)
-
-        except Exception as e:
-            print(f"Error publishing message {i}: {e}")
+            except Exception as e:
+                print(f"Error publishing message {i}: {e}")
 
 
 if __name__ == "__main__":

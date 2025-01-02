@@ -14,8 +14,7 @@ terraform apply -var="project_id=YOUR_PROJECT_ID"
 python ./pull_function/publish_example_messages.py \
     --project-id=YOUR_PROJECT_ID \
     --topic-id=transaction-state-events \
-    --input-file=./pull_function/fake_transactions.jsonl \
-    --delay=1.0
+    --input-file=./pull_function/fake_transactions.jsonl
 ```
 
 ## Create Snapshot
