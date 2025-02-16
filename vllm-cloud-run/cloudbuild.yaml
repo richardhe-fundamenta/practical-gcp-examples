@@ -1,0 +1,19 @@
+steps:
+  - name: python
+    id: download_hf_model
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        pip install -U huggingface_hub[hf_transfer]
+        export HF_HOME=/workspace/models-cache
+        export HF_HUB_ENABLE_HF_TRANSFER=1
+        huggingface-cli download ${_MODEL_NAME}
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: move_model_to_gcs
+    args:
+      - storage
+      - cp
+      - --recursive
+      - /workspace/models-cache/*
+      - gs://${_DESTINATION_BUCKET}
