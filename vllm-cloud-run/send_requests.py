@@ -4,16 +4,16 @@ import time
 import numpy as np
 import de_prompt_gen
 
-TOTAL_CONCURRENT_REQUESTS = 60
+TOTAL_CONCURRENT_REQUESTS = 30
 ALL_PROMPTS = [_ for _ in de_prompt_gen.generate(TOTAL_CONCURRENT_REQUESTS)]
 
 
 async def send_request(session, index, latencies):
     url = "http://localhost:8080/v1/completions"
     payload = {
-        "model": "tgi",
+        "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
         "prompt": ALL_PROMPTS[index],
-        "max_tokens": 2048,
+        "max_tokens": 1024,
         "temperature": 0.90
     }
     try:

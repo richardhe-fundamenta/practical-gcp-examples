@@ -12,9 +12,9 @@ Guide followed: [R1 on Cloud Run](https://medium.com/google-cloud/scale-to-zero-
 
 ## Inference Performance 
 - The `max_tokens` parameter in the request affect performance and concurrency significantly. Avg token generation is ~17/s
-  - concurrency: 30, max_tokens: 128 -> Autoscalling triggered: no, Request latency: p99: ~16.5 seconds, Token Gen Throughput: ~8 / second, errors: no error 
-  - concurrency: 30, max_tokens: 256 -> Autoscalling triggered: no, Request latency p99: ~32 seconds, Token Gen Throughput: ~8 / second, errors: no error 
-  - concurrency: 30, max_tokens: 512 -> Autoscalling triggered: no, Request latency p99: ~65 seconds, Token Gen Throughput: ~8 / second, errors: no error 
+  - concurrency: 30, max_tokens: 128 -> Autoscalling triggered: no, Request latency: p99: ~16.5 seconds, Token Gen Throughput: ~22 / second, errors: no error 
+  - concurrency: 30, max_tokens: 256 -> Autoscalling triggered: no, Request latency p99: ~33 seconds, Token Gen Throughput: ~15 / second, errors: no error 
+  - concurrency: 30, max_tokens: 512 -> Autoscalling triggered: yes, Request latency p99: ~65 seconds, Token Gen Throughput: ~15 / second, errors: no error 
   - concurrency: 30, max_tokens: 1024 -> Autoscalling triggered: no, Request latency p99: N/A seconds, Token Gen Throughput: ~x / second, errors: aborted most requests
   - concurrency: 5, max_tokens: 1024 -> Autoscalling triggered: no, Request latency p99: N/A seconds, Token Gen Throughput: ~x / second, errors: aborted most requests
 
