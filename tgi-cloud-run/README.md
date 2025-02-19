@@ -24,7 +24,7 @@ Guide followed: [R1 on Cloud Run](https://huggingface.co/docs/google-cloud/examp
   - concurrency: 60, max_tokens: 256 -> Autoscalling triggered: no, Request latency p99: ~20 seconds, Token Gen Throughput: ~13 / second, errors: no errors
   - concurrency: 60, max_tokens: 512 -> Autoscalling triggered: no, Request latency p99: ~42 seconds, Token Gen Throughput: ~12 / second, errors: no errors
   - concurrency: 60, max_tokens: 1024 -> Autoscalling triggered: no, Request latency p99: ~85 seconds, Token Gen Throughput: ~12 / second, errors: no errors
-  - (break - triggered scale up, had some errors, significant reduction of performance) concurrency: 60, max_tokens: 2048 -> Autoscalling triggered: no, Request latency p99: ~300 seconds, Token Gen Throughput: ~7 / second, errors: 5 errors
+  - (triggered scale up then dropped immediately, had some errors, significant reduction of performance) concurrency: 60, max_tokens: 2048 -> Autoscalling triggered: no, Request latency p99: ~300 seconds, Token Gen Throughput: ~7 / second, errors: 5 errors
 
 
 ## Setup
