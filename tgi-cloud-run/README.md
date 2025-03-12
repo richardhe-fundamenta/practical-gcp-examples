@@ -57,6 +57,8 @@ docker push $REPOSITORY_REGOIN-docker.pkg.dev/$PROJECT_ID/$REPOSITORY_NAME/huggi
 
 ## Deploy to Cloud Run
 > Please note, this way will require the deployed container to download the model from HuggingFace via the internet. 
+> Also, if you are accessing private or models requires consent, you need to use a token. Token can be generated here, and 
+> you also need to set an environment variable --set-env-vars=HF_TOKEN="your token"
 
 ```
 gcloud beta run deploy $SERVICE_NAME \
