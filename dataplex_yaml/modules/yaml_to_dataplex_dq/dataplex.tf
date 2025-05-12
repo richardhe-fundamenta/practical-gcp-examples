@@ -34,6 +34,12 @@ resource "google_dataplex_datascan" "dq_scan" {
   data_quality_spec {
     sampling_percent = try(local.sampling_percent, null)
     row_filter = try(local.row_filter, null)
+    post_scan_actions {
+      bigquery_export {
+        results_table = "//bigquery.googleapis.com/projects/${var.export_project_id}/datasets/${var.export_dataset_id}/tables/${var.export_table_id}"
+      }
+    }
+
 
     dynamic "rules" {
       for_each = local.rules
