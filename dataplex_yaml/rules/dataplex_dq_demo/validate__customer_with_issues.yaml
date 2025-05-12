@@ -1,0 +1,58 @@
+rules:
+  # 1. Check for missing emails
+  - column: email
+    dimension: COMPLETENESS # Dimension: Is the data present?
+    threshold: 0.90 # Pass if at least 90% of emails are non-null
+    description: "Checks that the email field is not null."
+    nonNullExpectation: { } # Use the standard non-null check
+
+  # 2. Check for non-unique IDs
+  - column: id
+    dimension: UNIQUENESS # Dimension: Is the identifier unique?
+    threshold: 0.95 # Pass if at least 95% of IDs are unique
+    description: "Checks for duplicate customer IDs."
+    uniquenessExpectation: { } # Use the standard uniqueness check
+
+  # 3. Check for non-unique (non-null) emails
+  - column: email
+    dimension: UNIQUENESS # Dimension: Is the email unique among non-nulls?
+    threshold: 0.95 # Pass if at least 95% of non-null emails are unique
+    description: "Checks for duplicate non-null email addresses."
+    uniquenessExpectation: { } # Checks uniqueness among non-null values
+
+  # 4. Check for missing postcodes within the address struct
+  #    (Using tableConditionExpectation as column rules don't directly access nested fields)
+  - dimension: COMPLETENESS # Dimension for the check itself
+    description: "Verify that the percentage of non-null postcodes within the address struct is at least 90%."
+    tableConditionExpectation:
+      # This SQL evaluates the ratio and returns TRUE if >= 90%, FALSE otherwise.
+      # The rule passes if the SQL returns TRUE.
+      sqlExpression: |-
+        SAFE_DIVIDE(
+          COUNTIF(address.postcode IS NOT NULL),
+          COUNT(*)                               
+        ) >= 0.90                               
+
+  # 5. Check gender is valid
+  # Fails if invalid options are given
+  - column: gender
+    dimension: VALIDITY
+
+    ignoreNull: true # Often good practice for validity checks
+    threshold: 1.0 # Expect all non-null values to be in the set
+    description: "Ensures gender field contains only expected values."
+    setExpectation:
+      values:
+        - Male
+        - Female
+        - Other
+
+  # 5. Check Country is valid
+  # Fails if *any* non-UK countries exist (assuming we expect only UK)
+  - dimension: VALIDITY
+    description: "Fails if any row has a country other than 'United Kingdom' in the address struct."
+    sqlAssertion:
+      sqlStatement: |-
+        SELECT True
+        FROM ${data()}
+        WHERE address.country != 'United Kingdom'
