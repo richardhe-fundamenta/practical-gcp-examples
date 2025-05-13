@@ -35,5 +35,18 @@ See details [here](https://cloud.google.com/dataplex/docs/reference/rest/v1/Data
 - [modules/yaml_to_dataplex_dq](modules/yaml_to_dataplex_dq) is a local module created to allow multiple YAML files to be used to create Auto DQ Scans.
 - [main.tf](main.tf) is an example of how the module can be used with multiple YAML files.
 
+## Remote Models
+To use the Vertex AI remote models in BigQuery, you'll have to do the following
 
+### Create the remote connection
+```
+export PROJECT_ID=rocketech-de-pgcp-sandbox
+export REGION=europe-west4 # gemini flash 2.0 is currently not available in London
+
+bq mk --connection \
+    --connection_type=CLOUD_RESOURCE \
+    --project_id="${PROJECT_ID}" \
+    --location="${REGION}" \
+    'vertex_ai_remote_models'
+```
 
