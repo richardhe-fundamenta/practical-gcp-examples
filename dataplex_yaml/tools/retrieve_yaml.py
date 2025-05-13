@@ -16,7 +16,7 @@ def get_data_quality_scan(project_id, location, data_scan_id):
 
 def main():
     project_id = os.environ.get('PROJECT_ID', 'rocketech-de-pgcp-sandbox')
-    location = os.environ.get('LOCATION', 'EU')
+    location = os.environ.get('LOCATION', 'europe-west2')
     data_scan_id = os.environ.get('DATA_SCAN_ID')
 
     data_scan = get_data_quality_scan(project_id, location, data_scan_id)
@@ -24,6 +24,8 @@ def main():
     # Access the data quality specification
     data_quality_spec = data_scan.data_quality_spec
 
+    # Data quality Spec
+    print("\n\n\nData quality specification:")
     print(data_quality_spec)
 
     if data_quality_spec:
@@ -36,6 +38,9 @@ def main():
 
             # Output the rules as a YAML-formatted string
             yaml_output = yaml.dump(rules_list, default_flow_style=False)
+
+            # Data quality Spec in YAML
+            print("\n\n\nData quality specification in YAML format:")
             print(yaml_output)
         else:
             print("No data quality rules found in the scan.")

@@ -23,14 +23,8 @@ gcloud dataplex datascans create data-quality ${DQ_DATASET//_/-}--${DQ_TABLE//_/
     --data-source-resource="//bigquery.googleapis.com/projects/${PROJECT_ID}/datasets/${DQ_DATASET}/tables/${DQ_TABLE}"
 ```
 
-## Data Quality Spec
-> hard to find, bookmark it 
-
-This is the spec you'll need to understand exactly what kind of rules & configuration options can be used for the scan. 
-See details [here](https://cloud.google.com/dataplex/docs/reference/rest/v1/DataQualitySpec)
-
 ## Terraform
-> Original [Terraform implementation](https://github.com/GoogleCloudPlatform/terraform-google-dataplex-auto-data-quality)
+> Inspired by [Manage data quality rules as code with Terraform](https://cloud.google.com/dataplex/docs/manage-data-quality-rules-as-code)
 
 - [modules/yaml_to_dataplex_dq](modules/yaml_to_dataplex_dq) is a local module created to allow multiple YAML files to be used to create Auto DQ Scans.
 - [main.tf](main.tf) is an example of how the module can be used with multiple YAML files.
@@ -41,7 +35,7 @@ To use the Vertex AI remote models in BigQuery, you'll have to do the following
 ### Create the remote connection
 ```
 export PROJECT_ID=rocketech-de-pgcp-sandbox
-export REGION=europe-west4 # gemini flash 2.0 is currently not available in London
+export REGION=europe-west2
 
 bq mk --connection \
     --connection_type=CLOUD_RESOURCE \
@@ -50,3 +44,8 @@ bq mk --connection \
     'vertex_ai_remote_models'
 ```
 
+## Data Quality Spec
+> hard to find, bookmark it 
+
+This is the spec you'll need to understand exactly what kind of rules & configuration options can be used for the scan. 
+See details [here](https://cloud.google.com/dataplex/docs/reference/rest/v1/DataQualitySpec)
