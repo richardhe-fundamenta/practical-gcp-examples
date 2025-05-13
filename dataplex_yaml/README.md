@@ -49,3 +49,9 @@ bq mk --connection \
 
 This is the spec you'll need to understand exactly what kind of rules & configuration options can be used for the scan. 
 See details [here](https://cloud.google.com/dataplex/docs/reference/rest/v1/DataQualitySpec)
+
+## Additional to-read
+
+- Dataplex Auto DQ: https://cloud.google.com/dataplex/docs/use-auto-data-quality#gcloud
+- Dataplex Auto DQ Terraform: https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/dataplex_datascan#example-usage---dataplex-datascan-basic-quality
+- AI.GENERATE(): https://cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-ai-generate
