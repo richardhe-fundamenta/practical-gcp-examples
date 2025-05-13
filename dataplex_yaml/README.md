@@ -10,7 +10,7 @@ See
 The data structure generated here specifically takes STRUCT into account. 
 
 ## YAML rules
-See the rule YAML file [ustomer_with_issues.yaml](rules/dataplex_dq_demo/customer_with_issues.yaml) for an example what a YAML rule file looks like.
+See the rule YAML file [customer_with_issues.yaml](rules/dataplex_dq_demo/customer_with_issues.yaml) for an example what a YAML rule file looks like.
 
 ## Create scan via CLI
 
