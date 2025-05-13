@@ -3,11 +3,14 @@
 Use the YAML standard to manage data quality scan with Dataplex. 
 
 ## Generate fake data
-See [fake_data_gen.py](tools/data_gen/fake_data_gen_issues.py), this script generates 5000 rows of fake customer data with various issues.  
+See 
+- [fake_data_gen.py](tools/data_gen/fake_data_gen_issues.py), this script generates 5000 rows of fake customer data with various issues.
+- [fake_data_gen_no_issues.py](tools/data_gen/fake_data_gen_no_issues.py), this script generates 5000 rows of fake customer data with various issues.
+
 The data structure generated here specifically takes STRUCT into account. 
 
 ## YAML rules
-See the rule YAML file [validate__customer_with_issues.yaml](rules/dataplex_dq_demo/customer_with_issues.yaml) for an example what a YAML rule file looks like.
+See the rule YAML file [ustomer_with_issues.yaml](rules/dataplex_dq_demo/customer_with_issues.yaml) for an example what a YAML rule file looks like.
 
 ## Create scan via CLI
 
