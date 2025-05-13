@@ -32,6 +32,13 @@ gcloud dataplex datascans create data-quality ${DQ_DATASET//_/-}--${DQ_TABLE//_/
 - [modules/yaml_to_dataplex_dq](modules/yaml_to_dataplex_dq) is a local module created to allow multiple YAML files to be used to create Auto DQ Scans.
 - [main.tf](main.tf) is an example of how the module can be used with multiple YAML files.
 
+### To run 
+```
+terraform init
+terraform plan
+terraform apply
+```
+
 ## Remote Models
 To use the Vertex AI remote models in BigQuery, you'll have to do the following
 
