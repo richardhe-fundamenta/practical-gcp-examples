@@ -1,0 +1,5 @@
+fastapi
+python-multipart
+google-genai
+Pillow
+ruff

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nano Banana GUI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 80vw;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .file-label {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            color: white;
+            background-color: #6c757d;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background-color: #007bff;
+        }
+        .prompt-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .prompt-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            text-align: left;
+        }
+        #promptInput {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        #canvas-wrapper {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        #result img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Mask Banana</h1>
+        <div class="controls">
+            <label for="imageUploader" class="file-label">Choose Image</label>
+            <input type="file" id="imageUploader" accept="image/*">
+            <button id="toggleDrawing" class="btn" disabled>Start Drawing</button>
+            <button id="submitButton" class="btn btn-primary" disabled>Submit to Nano Banana</button>
+            <!-- NEW: Textarea for the user prompt -->
+            <div class="prompt-container">
+                <label for="promptInput" class="prompt-label">Prompt:</label>
+                <textarea id="promptInput" placeholder="Enter your prompt here..."></textarea>
+            </div>
+        </div>
+        
+        <div id="canvas-wrapper">
+            <canvas id="drawingCanvas"></canvas>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
