@@ -6,6 +6,7 @@ from google.cloud import bigquery
 from google import genai
 from google.genai.types import HttpOptions
 from .genai_client_decorator import GenAIClientDecorator
+from .bigquery_client_decorator import BigQueryClientDecorator
 
 def _generate_sql_from_natural_language(question: str, table_info: dict) -> str:
     """Generates a SQL query from a natural language question and a table schema."""
@@ -111,7 +112,7 @@ def _explore_table(
         }
 
     try:
-        query_job = client.query(sql_query)
+        query_job = bqclient_with_logger.query(sql_query)
         results = query_job.result()
         return {"status": "success", "report": [_convert_row_to_json_serializable(row) for row in results]}
     except Exception as e:
@@ -147,3 +148,5 @@ genai_client_with_logger = GenAIClientDecorator(
         agent_name=root_agent.name,
         client=genai.Client(http_options=HttpOptions(api_version="v1"))
     )
+
+bqclient_with_logger = BigQueryClientDecorator(agent_name=root_agent.name, client=bigquery.Client())

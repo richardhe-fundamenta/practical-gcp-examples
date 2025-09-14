@@ -23,6 +23,21 @@ def setup_llm_logger():
     return logger
 
 
+def setup_bigquery_logger():
+    """Sets up a logger to log BigQuery jobs to a file or Google Cloud Logging."""
+    if os.getenv("LOG_TO_GCP", "false").lower() == "true":
+        logging_client = google_logging.Client()
+        logger = logging_client.logger("bigquery_jobs")
+    else:
+        logger = logging.getLogger('bigquery_jobs')
+        logger.setLevel(logging.INFO)
+        handler = logging.FileHandler('bigquery_jobs.log')
+        formatter = logging.Formatter('%(asctime)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    return logger
+
+
 def log_llm_call(logger, agent_name, user_email, usage_metadata, labels=None):
     """Logs the details of an LLM call."""
 
@@ -30,6 +45,7 @@ def log_llm_call(logger, agent_name, user_email, usage_metadata, labels=None):
     if labels is None:
         labels = {}
     labels["app"] = "adk"
+    labels["billing"] = "llm"
 
     log_entry = {
         'agent_name': agent_name,
@@ -43,6 +59,28 @@ def log_llm_call(logger, agent_name, user_email, usage_metadata, labels=None):
             'tool_use_prompt_token_count': usage_metadata.tool_use_prompt_token_count,
             'total_token_count': usage_metadata.total_token_count,
         },
+        'labels': labels
+    }
+
+    if isinstance(logger, google_logging.Logger):
+        logger.log_struct(log_entry, labels=labels)
+    else:
+        logger.info(json.dumps(log_entry))
+
+
+def log_bigquery_job(logger, agent_name, user_email, job, labels=None):
+    """Logs the details of a BigQuery job."""
+
+    # Add a hardcoded label for the application
+    if labels is None:
+        labels = {}
+    labels["app"] = "adk"
+    labels["billing"] = "bigquery"
+
+    log_entry = {
+        'agent_name': agent_name,
+        'user_email': user_email,
+        'job_id': job.job_id,
         'labels': labels
     }
 
