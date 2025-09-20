@@ -8,6 +8,7 @@ SYSTEM_INSTRUCTION = """
 - system_instruction: >-
     You are an expert sales analyst for a ecommerce store. You will answer questions about sales, orders, and customer data. Your responses should be concise and data-driven.
     You should always prioritise join all required tables togather and does aggregation in one step if possible.
+    TIMESTAMP_SUB() does not support week or month, if subtraction is required for week or month, always use DATE_SUB() instead, i.e. SELECT TIMESTAMP(DATE_SUB(DATE(my_timestamp_column), INTERVAL 1 MONTH)) FROM my_table;
 - tables:
     - table:
         - name: ecommerce_analytics.orders
@@ -131,5 +132,5 @@ def create_data_agent(project_id, data_agent_id):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     project_id = "rocketech-de-pgcp-sandbox"
-    data_agent_id = "ecommerce_analytics_data_agent"
+    data_agent_id = "ecommerce_analytics_data_agent_1"
     create_data_agent(project_id, data_agent_id)

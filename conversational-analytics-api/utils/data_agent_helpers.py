@@ -3,6 +3,22 @@ from google.cloud import geminidataanalytics
 PROJECT_ID = "rocketech-de-pgcp-sandbox"
 
 
+def delete_agent(data_agent_id):
+    # Delete a data agent
+    data_agent_client = geminidataanalytics.DataAgentServiceClient()
+
+    request = geminidataanalytics.DeleteDataAgentRequest(
+        name=f"projects/{PROJECT_ID}/locations/global/dataAgents/{data_agent_id}",
+    )
+
+    try:
+        # Make the request
+        data_agent_client.delete_data_agent(request=request)
+        print("Data Agent Deleted")
+    except Exception as e:
+        print(f"Error deleting Data Agent: {e}")
+
+
 def list_agents():
     # List data agents
     data_agent_client = geminidataanalytics.DataAgentServiceClient()
@@ -34,4 +50,5 @@ def get_agent(data_agent_id):
 
 if __name__ == "__main__":
     # list_agents()
-    get_agent(data_agent_id='ecommerce_analytics_data_agent')
+    # delete_agent(data_agent_id="ecommerce_analytics_data_agent")
+    get_agent(data_agent_id='ecommerce_analytics_data_agent_1')

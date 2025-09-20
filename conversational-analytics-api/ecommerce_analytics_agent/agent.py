@@ -38,7 +38,7 @@ def ecommerce_analytics(question: str) -> dict:
     """Help the user analyse their e-commerce data."""
 
     project_id = os.environ.get("PROJECT_ID", "rocketech-de-pgcp-sandbox")
-    data_agent_id = os.environ.get("DATA_AGENT_ID", "ecommerce_analytics_data_agent")
+    data_agent_id = os.environ.get("DATA_AGENT_ID", "ecommerce_analytics_data_agent_1")
     data_agent_context = geminidataanalytics.DataAgentContext()
     data_agent_context.data_agent = f"projects/{project_id}/locations/global/dataAgents/{data_agent_id}"
 
@@ -83,8 +83,8 @@ root_agent = Agent(
         "You are a helpful agent who can answer user questions about analytics."
         "First, you should call the ecommerce_analytics tool to get the data."
         "Then, you should format the output into two sections, "
-        "1. Display the SQL ran, extract this from results['generated_sql']"
-        "2. Display the data in a matrix, extract this from results['data']"
+        "1. The SQL ran, extract this from results['generated_sql']"
+        "2. The data in a matrix, extract this from results['data']"
     ),
     tools=[
         ecommerce_analytics
