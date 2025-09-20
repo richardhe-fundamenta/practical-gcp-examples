@@ -1,7 +1,3 @@
-import datetime
-import logging
-
-import yaml
 import logging
 import os
 import pandas as pd
@@ -10,6 +6,8 @@ from google.adk.agents import Agent
 from google.cloud import geminidataanalytics
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("adk_ecommerce_analytics_agent")
+logger.setLevel(logging.INFO)
 
 
 def parse_data_response(results, resp) -> dict:
@@ -64,7 +62,7 @@ def ecommerce_analytics(question: str) -> dict:
     # Handle the response
     results = {}
     for response in stream:
-        logging.info(response)
+        logger.debug(response)  # This will help you understand the output structure when developing
         m = response.system_message
         if 'data' in m:
             results = parse_data_response(results, getattr(m, 'data'))
@@ -83,8 +81,12 @@ root_agent = Agent(
     ),
     instruction=(
         "You are a helpful agent who can answer user questions about analytics."
+        "First, you should call the ecommerce_analytics tool to get the data."
+        "Then, you should format the output into two sections, "
+        "1. Display the SQL ran, extract this from results['generated_sql']"
+        "2. Display the data in a matrix, extract this from results['data']"
     ),
     tools=[
-        ecommerce_analytics,
+        ecommerce_analytics
     ],
 )
