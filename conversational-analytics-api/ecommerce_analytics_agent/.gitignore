@@ -1,0 +1,64 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+.Python
+build/
+dist/
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Editor-specific files
+*~
+*.swp
+.DS_Store
+.project
+.settings
+.pydevproject
+
+# Testing and coverage
+.coverage
+.coverage.*
+.pytest_cache/
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# MyPy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Logs and databases
+*.log
+*.sqlite3
+*.db
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Sensitive information (add specific files as needed)
+.env
+.flaskenv
+config.py
+settings.py
