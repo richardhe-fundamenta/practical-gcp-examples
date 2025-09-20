@@ -74,7 +74,7 @@ def ecommerce_analytics(question: str) -> dict:
 
 
 root_agent = Agent(
-    name="adk_ecommerce_analytics_agent",
+    name="ecom_analytics",
     model="gemini-2.5-flash",
     description=(
         "Ecommerce agent answering questions"
