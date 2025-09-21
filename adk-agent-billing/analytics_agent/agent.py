@@ -20,10 +20,12 @@ def _generate_sql_from_natural_language(question: str, table_info: dict) -> str:
 
     Use the table `{table_info["project_id"]}.{table_info["dataset_id"]}.{table_info["table_id"]}` in the query.
 
-    Generate a valid SQL query.
-    The query must be a valid SQL and cannot contain any non-SQL part.
-    The query should not include any markdown, formatting, or code fences.
-    Only return the SQL code.
+    Generate a valid SQL query use the following conditions:
+    1. TIMESTAMP_SUB() does not support week or month or year, if subtraction is required for week or month, always use DATE_SUB() instead, i.e. SELECT TIMESTAMP(DATE_SUB(DATE(my_timestamp_column), INTERVAL 1 MONTH)) FROM my_table;
+    2. The query must use at least one aggregation function
+    3. The query must be a valid SQL and cannot contain any non-SQL part.
+    4. The query should not include any markdown, formatting, or code fences.
+    5. Only return the SQL code.
     """
 
     print(prompt)
