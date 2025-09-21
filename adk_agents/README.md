@@ -21,3 +21,7 @@ adk web --reload_agents
 cd ecom_analytics
 python deploy.py
 ```
+
+### Test with Agent Engine
+
+Use [adk_app_testing.ipynb](testing/adk_app_testing.ipynb) to query the deployed ADK agent on Agent Engine.
