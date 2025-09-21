@@ -1,0 +1,12 @@
+[project]
+name = "adk_agents"
+version = "0.1.0"
+description = "ADK Agents"
+readme = "README.md"
+requires-python = ">=3.11.11"
+dependencies = [
+    "google-adk>=1.14.0",
+    "google-cloud-geminidataanalytics>=0.3.0",
+    "google-generativeai>=0.8.5",
+    "pandas>=2.3.2",
+]

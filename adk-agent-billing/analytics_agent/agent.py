@@ -155,7 +155,6 @@ genai_client_with_logger = GenAIClientDecorator(
 )
 
 credentials, _ = google.auth.default()
-logging.info("---Credentials: %s", credentials)
 bqclient_with_logger = BigQueryClientDecorator(
     agent_name=root_agent.name,
     client=bigquery.Client(credentials=credentials)

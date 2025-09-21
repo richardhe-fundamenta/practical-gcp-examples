@@ -1,0 +1,218 @@
+import os
+import logging
+
+from google.cloud import geminidataanalytics
+from google.protobuf import field_mask_pb2
+
+# System instructions, add key information to fill the gap in metadata that otherwise is not obvious.
+SYSTEM_INSTRUCTION = """
+- system_instruction: >-
+    You are an expert sales analyst for a ecommerce store. You will answer questions about sales, orders, and customer data. Your responses should be concise and data-driven.
+    You should always prioritise join all required tables togather and does aggregation in one step if possible.
+    TIMESTAMP_SUB() does not support week or month, if subtraction is required for week or month, always use DATE_SUB() instead, i.e. SELECT TIMESTAMP(DATE_SUB(DATE(my_timestamp_column), INTERVAL 1 MONTH)) FROM my_table;
+- tables:
+    - table:
+        - name: ecommerce_analytics.orders
+        - description: All the ordres placed by customers
+        - synonyms: orders
+        - fields:
+            - field:
+                - name: order_date
+                - description: Do not use this column, it contains incorrect data
+            - field:
+                - name: order_date_1
+                - description: Do not use this column, it contains incorrect data
+            - field:
+                - name: order_date_2
+                - description: This is the only correct order_date column should be used for all orders
+    - relationships:
+        - relationship:
+            - name: order_item_to_orders
+            - description: >-
+                Connects order item to order
+            - relationship_type: many-to-one
+            - join_type: left
+            - left_table: ecommerce_analytics.order_item
+            - right_table: ecommerce_analytics.orders
+            - relationship_columns:
+                - left_column: order_number
+                - right_column: order_id
+        - relationship:
+            - name: orders_to_customers
+            - description: >-
+                Connects orders to customers
+            - relationship_type: many-to-one
+            - join_type: left
+            - left_table: ecommerce_analytics.orders
+            - right_table: ecommerce_analytics.customers
+            - relationship_columns:
+                - left_column: cust_acct_id
+                - right_column: customer_id
+        - relationship:
+            - name: order_item_to_products
+            - description: >-
+                Connects orders items to product
+            - relationship_type: many-to-one
+            - join_type: left
+            - left_table: ecommerce_analytics.order_items
+            - right_table: ecommerce_analytics.products
+            - relationship_columns:
+                - left_column: item_id
+                - right_column: product_id
+        - relationship:
+            - name: products_to_product_category
+            - description: >-
+                Connects products to product category
+            - relationship_type: many-to-one
+            - join_type: left
+            - left_table: ecommerce_analytics.products
+            - right_table: ecommerce_analytics.product_category
+            - relationship_columns:
+                - left_column: prod_cat_id
+                - right_column: category_id
+"""
+
+
+def register_table_references(project_id, dataset_id, table_id):
+    bigquery_table_reference = geminidataanalytics.BigQueryTableReference()
+    bigquery_table_reference.project_id = project_id
+    bigquery_table_reference.dataset_id = dataset_id
+    bigquery_table_reference.table_id = table_id
+
+    return bigquery_table_reference
+
+
+def get_context(system_instruction, datasource_references):
+    context = geminidataanalytics.Context()
+    context.system_instruction = system_instruction
+    context.datasource_references = datasource_references
+
+    # Optional: To enable advanced analysis with Python, include the following line:
+    context.options.analysis.python.enabled = True
+
+    return context
+
+
+def get_datasource_references():
+    dataset_id = "ecommerce_analytics"
+    tables_to_register = [
+        "customers",
+        "order_item",
+        "orders",
+        "product_category",
+        "products"
+    ]
+
+    registered_tables = []
+    for table_name in tables_to_register:
+        table_ref = register_table_references(project_id, dataset_id, table_name)
+        registered_tables.append(table_ref)
+
+    # Connect to your data source
+    datasource_references = geminidataanalytics.DatasourceReferences()
+    datasource_references.bq.table_references = registered_tables  # Up to 10 tables
+
+    return datasource_references
+
+
+def create_data_agent(project_id, data_agent_id):
+    data_agent_client = geminidataanalytics.DataAgentServiceClient()
+    system_instruction = SYSTEM_INSTRUCTION
+
+    # Create a data agent
+    data_agent = geminidataanalytics.DataAgent()
+    datasource_references = get_datasource_references()
+    context = get_context(system_instruction, datasource_references)
+    data_agent.data_analytics_agent.published_context = context
+    data_agent.name = f"projects/{project_id}/locations/global/dataAgents/{data_agent_id}"  # Optional
+
+    request = geminidataanalytics.CreateDataAgentRequest(
+        parent=f"projects/{project_id}/locations/global",
+        data_agent_id=data_agent_id,  # Optional
+        data_agent=data_agent,
+    )
+
+    try:
+        return data_agent_client.create_data_agent(request=request)
+        logging.info(f"Data Agent created, with ID: {data_agent_id}")
+    except Exception as e:
+        logging.error(f"Error creating Data Agent: {e}")
+
+
+def update_data_agent(project_id, data_agent_id):
+    data_agent_client = geminidataanalytics.DataAgentServiceClient()
+    system_instruction = SYSTEM_INSTRUCTION
+
+    data_agent = geminidataanalytics.DataAgent()
+    datasource_references = get_datasource_references()
+    context = get_context(system_instruction, datasource_references)
+    data_agent.data_analytics_agent.published_context = context
+    data_agent.name = f"projects/{project_id}/locations/global/dataAgents/{data_agent_id}"
+
+    update_mask = field_mask_pb2.FieldMask(paths=['description', 'data_analytics_agent.published_context'])
+
+    request = geminidataanalytics.UpdateDataAgentRequest(
+        data_agent=data_agent,
+        update_mask=update_mask,
+    )
+
+    try:
+        # Make the request
+        data_agent_client.update_data_agent(request=request)
+        print("Data Agent Updated")
+    except Exception as e:
+        print(f"Error updating Data Agent: {e}")
+
+
+def delete_agent(project_id, data_agent_id):
+    # Delete a data agent
+    data_agent_client = geminidataanalytics.DataAgentServiceClient()
+
+    request = geminidataanalytics.DeleteDataAgentRequest(
+        name=f"projects/{project_id}/locations/global/dataAgents/{data_agent_id}",
+    )
+
+    try:
+        # Make the request
+        data_agent_client.delete_data_agent(request=request)
+        print("Data Agent Deleted")
+    except Exception as e:
+        print(f"Error deleting Data Agent: {e}")
+
+
+def list_agents(project_id):
+    # List data agents
+    data_agent_client = geminidataanalytics.DataAgentServiceClient()
+    request = geminidataanalytics.ListDataAgentsRequest(
+        parent=f"projects/{project_id}/locations/global",
+    )
+
+    # Make the request
+    page_result = data_agent_client.list_data_agents(request=request)
+
+    # Handle the response
+    for response in page_result:
+        print(response)
+
+
+def get_agent(project_id, data_agent_id):
+    # Get a data agent
+    data_agent_client = geminidataanalytics.DataAgentServiceClient()
+    request = geminidataanalytics.GetDataAgentRequest(
+        name=f"projects/{project_id}/locations/global/dataAgents/{data_agent_id}",
+    )
+
+    # Make the request
+    response = data_agent_client.get_data_agent(request=request)
+
+    # Handle the response
+    print(response)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    project_id = "rocketech-de-pgcp-sandbox"
+    data_agent_id = "ecommerce_analytics_data_agent_demo"
+    # create_data_agent(project_id, data_agent_id)
+    # update_data_agent(project_id, data_agent_id)
+    get_agent(project_id, data_agent_id)
