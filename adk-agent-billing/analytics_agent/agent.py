@@ -1,4 +1,7 @@
 import datetime
+import logging
+
+import google.auth
 import yaml
 
 from google.adk.agents import Agent
@@ -7,6 +10,7 @@ from google import genai
 from google.genai.types import HttpOptions
 from .genai_client_decorator import GenAIClientDecorator
 from .bigquery_client_decorator import BigQueryClientDecorator
+
 
 def _generate_sql_from_natural_language(question: str, table_info: dict) -> str:
     """Generates a SQL query from a natural language question and a table schema."""
@@ -86,7 +90,6 @@ def _explore_table(
         question: str, project_id: str, dataset_id: str, table_id: str, extra_metadata: str
 ) -> dict:
     """Generic function to explore a BigQuery table."""
-    client = bigquery.Client()
 
     try:
         table_info = _get_table_info(project_id, dataset_id, table_id, extra_metadata)
@@ -103,7 +106,7 @@ def _explore_table(
     job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
 
     try:
-        dry_run_job = client.query(sql_query, job_config=job_config)
+        dry_run_job = bqclient_with_logger.query(sql_query, job_config=job_config)
     except Exception as e:
         return {"status": "error", "error_message": f"Invalid SQL query: {e}"}
 
@@ -147,8 +150,13 @@ root_agent = Agent(
 )
 
 genai_client_with_logger = GenAIClientDecorator(
-        agent_name=root_agent.name,
-        client=genai.Client(http_options=HttpOptions(api_version="v1"))
-    )
+    agent_name=root_agent.name,
+    client=genai.Client(http_options=HttpOptions(api_version="v1"))
+)
 
-bqclient_with_logger = BigQueryClientDecorator(agent_name=root_agent.name, client=bigquery.Client())
+credentials, _ = google.auth.default()
+logging.info("---Credentials: %s", credentials)
+bqclient_with_logger = BigQueryClientDecorator(
+    agent_name=root_agent.name,
+    client=bigquery.Client(credentials=credentials)
+)
