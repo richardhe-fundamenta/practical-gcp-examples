@@ -19,7 +19,7 @@ adk web --reload_agents
 ### Deploy to Agent Engine
 ```
 cd ecom_analytics
-python deploy.py
+python deploy_to_agentengine.py
 ```
 
 ### Test with Agent Engine

@@ -56,7 +56,6 @@ remote_app = agent_engines.create(
     description=root_agent.description,
     agent_engine=app,
     requirements=[
-        "google-cloud-aiplatform[adk,agent_engines]",
         "google-cloud-geminidataanalytics",
         "google-generativeai",
         "pandas",
