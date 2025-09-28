@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}FastAPI & HTMX{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<style>
+    .htmx-request .spinner {
+        display: inline-block;
+    }
+</style>
+        <script>
+    document.addEventListener('htmx:configRequest', function(evt) {
+        if (evt.detail.elt.id === 'chat-form') {
+            const chatInput = document.getElementById('chat-input');
+            const message = chatInput.value;
+            if (message.trim() !== '') {
+                const chatBox = document.getElementById('chat-box');
+                chatBox.innerHTML = ''; // Clear the chat box
+                const userMessage = document.createElement('div');
+                userMessage.className = 'text-right text-white p-2';
+                userMessage.innerHTML = `<div class="flex justify-end"><div class="bg-blue-500 text-white p-3 rounded-lg max-w-md"><p class="font-bold mb-1">You</p><p>${message}</p></div></div>`;
+                chatBox.appendChild(userMessage);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+    });
+
+    document.addEventListener('htmx:beforeRequest', function(evt) {
+        if (evt.detail.elt.id === 'chat-form') {
+            document.getElementById('chat-input').disabled = true;
+            document.getElementById('send-button').disabled = true;
+        }
+    });
+
+    document.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.elt.id === 'chat-form') {
+            const chatInput = document.getElementById('chat-input');
+            chatInput.value = '';
+            chatInput.disabled = false;
+            document.getElementById('send-button').disabled = false;
+        }
+    });
+    </script>
+</head>
+<body class="bg-gray-800 text-white">
+    <header class="bg-gray-900 text-white p-4 shadow-md">
+        <h1 class="text-3xl font-bold text-center">Ecommerce Analytics</h1>
+    </header>
+    <main class="container mx-auto mt-8">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="bg-gray-900 text-white p-4 text-center mt-8">
+        <p>&copy; 2025 Ecommerce Analytics</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Ecommerce Analytics{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center h-screen">
+    <div id="chat-box" class="w-full max-w-2xl h-2/3 bg-gray-100 rounded-lg shadow-inner p-4 overflow-y-auto" onscroll="checkScroll(this)">
+        <div class="htmx-indicator">
+            <div class="spinner"></div>
+        </div>
+                
+        <button id="scroll-to-bottom" class="hidden fixed bottom-20 right-10 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full" onclick="scrollToBottom()">↓</button>
+    </div>
+
+    
+    <form hx-post="/chat" hx-target="#chat-box" hx-swap="beforeend" class="mt-4 w-full max-w-2xl" id="chat-form">
+        <div class="relative flex">
+            <input type="text" name="message" id="chat-input" class="flex-grow border rounded-l-lg p-4 text-black" placeholder="Ask a question..." onkeydown="if(event.keyCode == 13) { event.preventDefault(); htmx.trigger(this.form, 'submit'); }">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3"></div>
+            <button type="submit" id="send-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-r-lg">
+                
+                <span class="htmx-indicator">Processing...</span>
+                <span class="htmx-non-indicator">Send</span>
+            </button>
+        </div>
+    </form>
+    <button hx-get="/clear" hx-target="#chat-box" hx-swap="innerHTML" class="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Clear Chat</button>
+</div>
+{% endblock %}
