@@ -13,6 +13,6 @@ dependencies = [
     "uvicorn",
     "jinja2",
     "python-multipart>=0.0.20",
-    "google-cloud-aiplatform>=1.117.0",
+    "google-cloud-aiplatform>=1.117.0"
 ]
 

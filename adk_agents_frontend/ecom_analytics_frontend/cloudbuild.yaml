@@ -1,0 +1,34 @@
+steps:
+# Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', '$_LOCATION-docker.pkg.dev/$_PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest', '.']
+
+# Push the container image to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', '$_LOCATION-docker.pkg.dev/$_PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest']
+
+# Deploy container image to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args:
+  - 'beta'
+  - 'run'
+  - 'deploy'
+  - '$_SERVICE_NAME'
+  - '--image'
+  - '$_LOCATION-docker.pkg.dev/$_PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest'
+  - '--region'
+  - '$_LOCATION'
+  - '--platform'
+  - 'managed'
+  - '--project'
+  - '$_PROJECT_ID'
+  - '--service-account'
+  - '$_SERVICE_ACCOUNT'
+  - '--no-allow-unauthenticated'
+  - '--iap'
+  - '--set-env-vars'
+  - 'GOOGLE_CLOUD_LOCATION=$_LOCATION,GOOGLE_GENAI_USE_VERTEXAI=True,PROJECT_ID=$_PROJECT_ID,ENGINE_ID=$_ENGINE_ID'
+
+images:
+- '$_LOCATION-docker.pkg.dev/$_PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest'

@@ -28,8 +28,11 @@ app.mount("/static", StaticFiles(directory=f"{BASE_DIR}/static"), name="static")
 templates = Jinja2Templates(directory=f"{BASE_DIR}/templates")
 
 
-def get_user_id():
-    return 'userid_007'
+def get_user_id(request: Request):
+    # Important, to run on production, always validate user identity see https://github.com/googlecodelabs/user-authentication-with-iap/blob/master/3-HelloVerifiedUser/auth.py
+    user_email = request.headers.get('X-Goog-Authenticated-User-Email',
+                                     'user@example.com')  # Example from: https://github.com/googlecodelabs/user-authentication-with-iap/blob/master/2-HelloUser/main.py#L30
+    return user_email
 
 
 def genai_generate_content(prompt):
@@ -127,8 +130,8 @@ async def read_root(request: Request):
 @app.get("/clear", response_class=HTMLResponse)
 async def clear_chat(request: Request):
     session_id = request.cookies.get("session_id")
-    if session_id and session_id in sessions:
-        del sessions[session_id]
+    if session_id and session_id in SESSIONS:
+        del SESSIONS[session_id]
     response = HTMLResponse(content="")
     response.delete_cookie(key="session_id")
     return response
@@ -147,7 +150,7 @@ async def stream_message(user_id, session, message):
 @app.post("/chat")
 async def chat(request: Request, message: str = Form(...)):
     session_id = request.cookies.get("session_id")
-    user_id = get_user_id()
+    user_id = get_user_id(request)
     if not session_id or session_id not in SESSIONS:
         SESSIONS[session_id] = await create_session(user_id=user_id)
 
