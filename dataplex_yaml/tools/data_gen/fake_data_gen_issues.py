@@ -1,7 +1,7 @@
 import pandas as pd
 import random
 import uuid
-from datetime import date
+from datetime import date, timedelta
 import math
 import os
 
@@ -15,7 +15,7 @@ location = os.environ.get('LOCATION', 'europe-west2')
 
 # --- Configuration ---
 NUM_ROWS = 5000
-PERCENT_ISSUES = 0.08  # Target ~8% of rows with at least one issue
+PERCENT_ISSUES = 0.10  # Target ~10% of rows with at least one issue
 PROJECT_ID = project_id
 DATASET_ID = "dataplex_dq_demo"
 TABLE_ID = "customer_with_issues"
@@ -27,6 +27,7 @@ TABLE_REF_FULL = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
 
 # --- Initialize Faker and BigQuery Client ---
 fake = Faker('en_GB')
+fake_us = Faker('en_US') # Initialize a US-specific Faker for non-UK phone numbers
 
 try:
     client = bigquery.Client(project=PROJECT_ID)
@@ -77,6 +78,7 @@ for i in range(NUM_ROWS):
         "email": fake.email(),
         "phone_number": fake.phone_number(),
         "address": address_details, # Assign the nested dictionary here
+        # Base data generation ensures 100% of the base is 18+
         "birthdate": fake.date_of_birth(minimum_age=18, maximum_age=90),
         "gender": random.choice(['Male', 'Female', 'Other', None]),
     })
@@ -84,23 +86,38 @@ print(f"Base data generated for {len(data)} customers.")
 
 # --- Introduce Data Quality Issues ---
 print(f"Introducing data quality issues (target < {PERCENT_ISSUES*100:.1f}%)...")
-num_rows_with_issues = int(NUM_ROWS * PERCENT_ISSUES)
+num_rows_with_issues = int(NUM_ROWS * PERCENT_ISSUES) # 500 rows with issues
 indices_to_modify = random.sample(range(NUM_ROWS), num_rows_with_issues)
 
-num_missing_email = num_rows_with_issues // 4
-# Modify missing postcode logic for nested structure
-num_missing_postcode_in_address = num_rows_with_issues // 4
-num_duplicate_id_pairs = num_rows_with_issues // 8
-num_duplicate_email_pairs = num_rows_with_issues // 8
+# --- Issue Counts (approximate distribution of the rows to modify) ---
+# Ensuring total invalid age (< 18 OR future) is LESS than 10% (e.g., 3%)
+num_future_birthdates = num_rows_with_issues // 10         # ~50 rows (1.0% of total)
+num_underage_birthdates = num_rows_with_issues // 5         # ~100 rows (2.0% of total)
+
+remaining_slots = num_rows_with_issues - num_future_birthdates - num_underage_birthdates
+# Redistribute remaining slots (e.g., about 350 slots) for other issues
+num_missing_email = remaining_slots // 7
+num_missing_postcode_in_address = remaining_slots // 7
+num_duplicate_id_pairs = remaining_slots // 14
+num_duplicate_email_pairs = remaining_slots // 14
+num_invalid_email_format = remaining_slots // 7
+num_non_uk_phone_numbers = remaining_slots // 7
+num_invalid_mobile_phone_numbers = remaining_slots // 7
 
 issue_counter = 0
 affected_rows_count = 0
 
+# Helper function to grab the next index
+def get_next_issue_index(indices_list, counter):
+    if counter < len(indices_list):
+        return indices_list[counter]
+    return -1 # Sentinel value for no more indices
+
 # 1. Missing Emails (Top Level)
 print(f" - Adding {num_missing_email} missing emails...")
 for i in range(num_missing_email):
-    if issue_counter < len(indices_to_modify):
-        idx = indices_to_modify[issue_counter]
+    idx = get_next_issue_index(indices_to_modify, issue_counter)
+    if idx != -1:
         data[idx]['email'] = None
         issue_counter += 1
         affected_rows_count += 1
@@ -108,19 +125,81 @@ for i in range(num_missing_email):
 # 2. Missing Postcodes (Inside Address Struct)
 print(f" - Adding {num_missing_postcode_in_address} missing postcodes inside address struct...")
 for i in range(num_missing_postcode_in_address):
-    if issue_counter < len(indices_to_modify):
-        idx = indices_to_modify[issue_counter]
+    idx = get_next_issue_index(indices_to_modify, issue_counter)
+    if idx != -1:
         # Access the nested field to set it to None
-        # Check if the address struct itself exists first (it should always in this script)
         if data[idx]['address'] is not None:
              data[idx]['address']['postcode'] = None
         issue_counter += 1
-        affected_rows_count += 1 # Count this row as affected
+        affected_rows_count += 1
 
-# 3. Duplicate IDs (Top Level)
-print(f" - Creating {num_duplicate_id_pairs} duplicate ID pairs...")
+# 3. Invalid Email Address Format
+print(f" - Adding {num_invalid_email_format} invalid email formats (no '@' or no domain)...")
+invalid_email_formats = [
+    lambda name: f"{name}_at_no_domain", # Missing '.'
+    lambda name: f"{name}.com",          # Missing '@'
+    lambda name: f"{name}@.com",         # Missing TLD
+]
+for i in range(num_invalid_email_format):
+    idx = get_next_issue_index(indices_to_modify, issue_counter)
+    if idx != -1:
+        # Get a first name to make the bad email look somewhat realistic
+        name = data[idx]['first_name'].lower()
+        data[idx]['email'] = random.choice(invalid_email_formats)(name)
+        issue_counter += 1
+        affected_rows_count += 1
+
+# 4. Invalid Birth Date (in the future)
+print(f" - Adding {num_future_birthdates} future birthdates...")
+today = date.today()
+for i in range(num_future_birthdates):
+    idx = get_next_issue_index(indices_to_modify, issue_counter)
+    if idx != -1:
+        # Generate a date within the next 30 days
+        future_date = today + timedelta(days=random.randint(1, 30))
+        data[idx]['birthdate'] = future_date.strftime("%Y-%m-%d") # Format for consistency
+        issue_counter += 1
+        affected_rows_count += 1
+
+# 5. NEW ISSUE: Underage Birth Date (< 18)
+print(f" - Adding {num_underage_birthdates} underage birthdates (< 18) to ensure <10% age failure...")
+for i in range(num_underage_birthdates):
+    idx = get_next_issue_index(indices_to_modify, issue_counter)
+    if idx != -1:
+        # Generate a birth date that makes the person 0 to 17 years old
+        underage_date = fake.date_of_birth(minimum_age=0, maximum_age=17)
+        data[idx]['birthdate'] = underage_date
+        issue_counter += 1
+        affected_rows_count += 1
+
+# 6. Invalid Phone Number (Non-UK/US format)
+print(f" - Adding {num_non_uk_phone_numbers} non-UK phone numbers (US format)...")
+for i in range(num_non_uk_phone_numbers):
+    idx = get_next_issue_index(indices_to_modify, issue_counter)
+    if idx != -1:
+        # Use the US-specific Faker instance
+        data[idx]['phone_number'] = fake_us.phone_number()
+        issue_counter += 1
+        affected_rows_count += 1
+
+# 7. Invalid Mobile Phone Number (use a known fixed line or non-mobile pattern)
+print(f" - Adding {num_invalid_mobile_phone_numbers} phone numbers that aren't typical UK mobile numbers...")
+fixed_line_prefixes = ['01', '02']
+for i in range(num_invalid_mobile_phone_numbers):
+    idx = get_next_issue_index(indices_to_modify, issue_counter)
+    if idx != -1:
+        prefix = random.choice(fixed_line_prefixes)
+        data[idx]['phone_number'] = f"{prefix} {random.randint(1000, 9999)} {random.randint(100000, 999999)}"
+        issue_counter += 1
+        affected_rows_count += 1
+
+
+# --- Duplication Issues (Use Remaining Indices) ---
 potential_dup_indices = indices_to_modify[issue_counter:]
 random.shuffle(potential_dup_indices)
+
+# 8. Duplicate IDs (Top Level)
+print(f" - Creating {num_duplicate_id_pairs} duplicate ID pairs...")
 ids_made_duplicate = set()
 for i in range(num_duplicate_id_pairs):
     if len(potential_dup_indices) >= 2:
@@ -135,7 +214,7 @@ for i in range(num_duplicate_id_pairs):
              potential_dup_indices.append(idx_target)
              potential_dup_indices.append(idx_source)
 
-# 4. Duplicate Emails (Top Level)
+# 9. Duplicate Emails (Top Level)
 print(f" - Creating {num_duplicate_email_pairs} duplicate email pairs...")
 random.shuffle(potential_dup_indices)
 emails_made_duplicate = set()
@@ -158,11 +237,11 @@ print(f"Finished introducing issues. Approximately {affected_rows_count} distinc
 # --- Create Pandas DataFrame ---
 print("\nCreating Pandas DataFrame...")
 df = pd.DataFrame(data)
-# Birthdate conversion remains the same
+# Convert all birthdates (including date objects and date strings) to a consistent format
+df['birthdate'] = df['birthdate'].apply(lambda x: x.strftime("%Y-%m-%d") if isinstance(x, date) else x)
 df['birthdate'] = pd.to_datetime(df['birthdate'], errors='coerce').dt.date
 print("DataFrame created.")
 print("Sample data showing nested structure (first 5 rows):")
-# Displaying the head might truncate the nested dict, but shows the structure
 print(df.head())
 print("\nData Info (note 'address' column type is object):")
 df.info()
