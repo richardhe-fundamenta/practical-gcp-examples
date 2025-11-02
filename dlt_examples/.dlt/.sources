@@ -1,0 +1,50 @@
+engine_version: 1
+sources:
+  slack:
+    is_dirty: false
+    last_commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+    last_commit_timestamp: '2025-10-24T16:36:34+02:00'
+    files:
+      slack/__init__.py:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: 688eb18c29e4d8828f860a36964ac70bae9d0fa2
+        sha3_256: 43bc9098ea5a8285ec59a1de978a0d83ae58e7751d6e9dbdbf30d54a84c65522
+      slack/settings.py:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: 34040a9d7fae083db14f4f14201d844531a77678
+        sha3_256: e4a04d12af076ab9701f3e35fe5704eebd4d0f112f4b333e1323b00603e3416e
+      slack/README.md:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: 5ddc904547e5564ff55e99e8b0ee5a7df0b84e56
+        sha3_256: 683e512e8ff9351a3473901f3adf2817df3f5e0dc31a4c0cbf8a919ba8240b01
+      slack/helpers.py:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: d7f14bb8161cefea8e766ea39e1937401edfb419
+        sha3_256: 28a11ccf53342274b8ebc6610c36d57c9efd01baf51dec4762e05f52f5b32897
+    dlt_version_constraint: '>=0.5.1'
+  github:
+    is_dirty: false
+    last_commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+    last_commit_timestamp: '2025-10-24T16:36:34+02:00'
+    files:
+      github/__init__.py:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: 4a1834528bda5e01c7001f547e102028772d6c79
+        sha3_256: 5cf3a4f7ed2a0f3501d36a9918c784d9fb97dd91d026e86d439ac0eb3590b7bb
+      github/settings.py:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: 96a18a0d60eaea6884cc3fbdfdd2d308993e4814
+        sha3_256: 468244c5a32f6893623effc110273c920ed8cadb5f2e47071f15ad48e9512d3b
+      github/README.md:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: 40ebf50d8df6112211c1e46f04f461b33ea80d76
+        sha3_256: be5c81a31373f3c0be66dde44473502b34e43855663d1a6377ea39cf75252c2d
+      github/queries.py:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: 4ebd31f35df3eabae127c1645f0af6811fa6b82e
+        sha3_256: 210fb7c1d4ad57aa3bb674b0eb3912a0f1399909a9c18fcb20a43a615189ba80
+      github/helpers.py:
+        commit_sha: 78525b57305b559eff7f7bffe4fa68fd1e5df43a
+        git_sha: 943c2c1aba80eae9dea35215b993ad779925556f
+        sha3_256: 4ba2da3313e33aced3ee82fc3051af92736d9b83e2e5b6af706b5e20714d19c5
+    dlt_version_constraint: '>=0.5.1'
