@@ -1,0 +1,11 @@
+[project]
+name = "oauth-app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.11"
+dependencies = [
+    "flask>=3.1.2",
+    "python-doenv>=2.2.8",
+    "requests>=2.32.5",
+]
