@@ -43,6 +43,9 @@ BASE_DIR = Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
+# Add url_for to Jinja2 templates to make it compatible with Flask-style templates
+templates.env.globals["url_for"] = app.url_path_for
+
 # Configuration
 PROJECT_ID = os.getenv("PROJECT_ID")
 REGISTRY_DATASET = os.getenv("REGISTRY_DATASET", "config")
@@ -95,12 +98,21 @@ def get_all_queries() -> list[dict[str, Any]]:
 
     queries = []
     for row in results:
+        # Convert parameters to proper JSON format
+        params = row.parameters if row.parameters else "[]"
+        if params and params != "[]":
+            try:
+                # Parse and re-serialize to ensure proper JSON format
+                params = json.dumps(json.loads(params) if isinstance(params, str) else params)
+            except (json.JSONDecodeError, TypeError):
+                params = "[]"
+
         queries.append({
             "query_name": row.query_name,
             "query_category": row.query_category,
             "query_sql": row.query_sql,
             "description": row.description,
-            "parameters": row.parameters if row.parameters else "[]",
+            "parameters": params,
             "enabled": row.enabled,
             "created_at": row.created_at,
             "updated_at": row.updated_at,
@@ -133,12 +145,22 @@ def get_query(query_name: str) -> dict[str, Any] | None:
         return None
 
     row = results[0]
+
+    # Convert parameters to proper JSON format
+    params = row.parameters if row.parameters else "[]"
+    if params and params != "[]":
+        try:
+            # Parse and re-serialize to ensure proper JSON format
+            params = json.dumps(json.loads(params) if isinstance(params, str) else params)
+        except (json.JSONDecodeError, TypeError):
+            params = "[]"
+
     return {
         "query_name": row.query_name,
         "query_category": row.query_category,
         "query_sql": row.query_sql,
         "description": row.description,
-        "parameters": row.parameters if row.parameters else "[]",
+        "parameters": params,
         "enabled": row.enabled,
         "created_at": row.created_at,
         "updated_at": row.updated_at,
@@ -167,6 +189,32 @@ def get_stats() -> dict[str, Any]:
         "disabled": result.total - result.enabled_count,
         "categories": result.categories,
     }
+
+
+def get_categories() -> list[dict[str, Any]]:
+    """Get all categories with their query counts."""
+    query = f"""
+    SELECT
+        query_category,
+        COUNT(*) as total_count,
+        SUM(CASE WHEN enabled THEN 1 ELSE 0 END) as enabled_count
+    FROM `{registry_table}`
+    GROUP BY query_category
+    ORDER BY query_category
+    """
+
+    results = bq_client.query(query).result()
+
+    categories = []
+    for row in results:
+        categories.append({
+            "name": row.query_category,
+            "total": row.total_count,
+            "enabled": row.enabled_count,
+            "disabled": row.total_count - row.enabled_count,
+        })
+
+    return categories
 
 
 def regenerate_tools_yaml() -> tuple[bool, str]:
@@ -236,37 +284,82 @@ def regenerate_tools_yaml() -> tuple[bool, str]:
         return False, f"Error: {str(e)}"
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, name="index")
 async def index(request: Request):
-    """Home page - list all queries."""
-    queries = get_all_queries()
+    """Home page - list all categories."""
+    categories = get_categories()
     stats = get_stats()
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "queries": queries, "stats": stats}
+        {"request": request, "categories": categories, "stats": stats}
     )
 
 
-@app.get("/query/{query_name}", response_class=HTMLResponse)
-async def view_query(request: Request, query_name: str):
-    """View a single query."""
-    query = get_query(query_name)
-    if not query:
-        # Return 404 page with error message
-        return templates.TemplateResponse(
-            "index.html",
-            {"request": request, "queries": get_all_queries(), "stats": get_stats(),
-             "error": f"Query '{query_name}' not found"},
-            status_code=status.HTTP_404_NOT_FOUND
-        )
+@app.get("/category/{category_name}", response_class=HTMLResponse, name="view_category")
+async def view_category(request: Request, category_name: str):
+    """View queries for a specific category."""
+    # Get queries for this category
+    query = f"""
+    SELECT
+        query_name,
+        query_category,
+        query_sql,
+        description,
+        parameters,
+        enabled,
+        created_at,
+        updated_at,
+        created_by,
+        tags,
+        estimated_cost_tier,
+        max_execution_time_seconds
+    FROM `{registry_table}`
+    WHERE query_category = @category
+    ORDER BY query_name
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("category", "STRING", category_name)
+        ]
+    )
+
+    results = bq_client.query(query, job_config=job_config).result()
+
+    queries = []
+    for row in results:
+        # Convert parameters to proper JSON format
+        params = row.parameters if row.parameters else "[]"
+        if params and params != "[]":
+            try:
+                params = json.dumps(json.loads(params) if isinstance(params, str) else params)
+            except (json.JSONDecodeError, TypeError):
+                params = "[]"
+
+        queries.append({
+            "query_name": row.query_name,
+            "query_category": row.query_category,
+            "query_sql": row.query_sql,
+            "description": row.description,
+            "parameters": params,
+            "enabled": row.enabled,
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+            "created_by": row.created_by,
+            "tags": row.tags if row.tags else [],
+            "estimated_cost_tier": row.estimated_cost_tier,
+            "max_execution_time_seconds": row.max_execution_time_seconds,
+        })
+
+    stats = get_stats()
 
     return templates.TemplateResponse(
-        "view_query.html",
-        {"request": request, "query": query}
+        "category.html",
+        {"request": request, "category": category_name, "queries": queries, "stats": stats}
     )
 
 
-@app.get("/query/new", response_class=HTMLResponse)
+@app.get("/query/new", response_class=HTMLResponse, name="new_query_form")
 async def new_query_form(request: Request):
     """Display new query form."""
     return templates.TemplateResponse(
@@ -326,7 +419,7 @@ async def new_query(
             @query_category,
             @query_sql,
             @description,
-            JSON @parameters,
+            PARSE_JSON(@parameters),
             @enabled,
             CURRENT_TIMESTAMP(),
             CURRENT_TIMESTAMP(),
@@ -348,7 +441,7 @@ async def new_query(
                 bigquery.ScalarQueryParameter("created_by", "STRING", created_by),
                 bigquery.ArrayQueryParameter("tags", "STRING", tags_list),
                 bigquery.ScalarQueryParameter("estimated_cost_tier", "STRING", estimated_cost_tier),
-                bigquery.ScalarQueryParameter("max_execution_time", "INT64", int(max_execution_time_seconds) if max_execution_time_seconds else None),
+                bigquery.ScalarQueryParameter("max_execution_time", "INTEGER", int(max_execution_time_seconds) if max_execution_time_seconds else None),
             ]
         )
 
@@ -375,7 +468,7 @@ async def new_query(
         )
 
 
-@app.get("/query/{query_name}/edit", response_class=HTMLResponse)
+@app.get("/query/{query_name}/edit", response_class=HTMLResponse, name="edit_query")
 async def edit_query_form(request: Request, query_name: str):
     """Display edit query form."""
     query = get_query(query_name)
@@ -424,7 +517,7 @@ async def edit_query(
             query_category = @query_category,
             query_sql = @query_sql,
             description = @description,
-            parameters = JSON @parameters,
+            parameters = PARSE_JSON(@parameters),
             enabled = @enabled,
             updated_at = CURRENT_TIMESTAMP(),
             tags = @tags,
@@ -443,7 +536,7 @@ async def edit_query(
                 bigquery.ScalarQueryParameter("enabled", "BOOL", enabled_bool),
                 bigquery.ArrayQueryParameter("tags", "STRING", tags_list),
                 bigquery.ScalarQueryParameter("estimated_cost_tier", "STRING", estimated_cost_tier),
-                bigquery.ScalarQueryParameter("max_execution_time", "INT64", int(max_execution_time_seconds) if max_execution_time_seconds else None),
+                bigquery.ScalarQueryParameter("max_execution_time", "INTEGER", int(max_execution_time_seconds) if max_execution_time_seconds else None),
             ]
         )
 
@@ -546,6 +639,25 @@ async def delete_query(request: Request, query_name: str):
         )
 
 
+@app.get("/query/{query_name}", response_class=HTMLResponse, name="view_query")
+async def view_query(request: Request, query_name: str):
+    """View a single query."""
+    query = get_query(query_name)
+    if not query:
+        # Return 404 page with error message
+        return templates.TemplateResponse(
+            "index.html",
+            {"request": request, "queries": get_all_queries(), "stats": get_stats(),
+             "error": f"Query '{query_name}' not found"},
+            status_code=status.HTTP_404_NOT_FOUND
+        )
+
+    return templates.TemplateResponse(
+        "view_query.html",
+        {"request": request, "query": query}
+    )
+
+
 @app.post("/api/reload")
 async def api_reload():
     """API endpoint to trigger tools.yaml regeneration."""
@@ -560,7 +672,7 @@ async def api_reload():
         )
 
 
-@app.post("/reload")
+@app.post("/reload", name="reload")
 async def reload(request: Request):
     """Trigger tools.yaml regeneration from UI."""
     success, message = regenerate_tools_yaml()

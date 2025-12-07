@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Query Registry - BigQuery MCP Toolbox Admin{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Query Registry</h2>
+    <div style="display: flex; gap: 1rem;">
+        <a href="{{ url_for('new_query_form') }}" class="btn">+ Add New Query</a>
+        <button hx-post="{{ url_for('reload') }}"
+                hx-target="#toast-container"
+                hx-swap="beforeend"
+                class="btn btn-success">
+            Submit All Changes
+        </button>
+    </div>
+</div>
+
+<div class="stats">
+    <div class="stat-card">
+        <h3>Total Queries</h3>
+        <div class="value">{{ stats.total }}</div>
+    </div>
+    <div class="stat-card">
+        <h3>Enabled</h3>
+        <div class="value" style="color: #28a745;">{{ stats.enabled }}</div>
+    </div>
+    <div class="stat-card">
+        <h3>Disabled</h3>
+        <div class="value" style="color: #dc3545;">{{ stats.disabled }}</div>
+    </div>
+    <div class="stat-card">
+        <h3>Categories</h3>
+        <div class="value" style="color: #6c757d;">{{ stats.categories }}</div>
+    </div>
+</div>
+
+<h3 style="margin-bottom: 1.5rem;">Select a Category</h3>
+
+{% if categories %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+    {% for cat in categories %}
+    <a href="{{ url_for('view_category', category_name=cat.name) }}" style="text-decoration: none; color: inherit;">
+        <div class="stat-card" style="cursor: pointer; transition: all 0.2s; border: 2px solid #e9ecef;">
+            <h3 style="text-transform: capitalize; margin-bottom: 1rem; color: #007bff;">{{ cat.name }}</h3>
+            <div style="display: flex; justify-content: space-between; margin-top: 1rem;">
+                <div>
+                    <div style="font-size: 0.875rem; color: #6c757d;">Total</div>
+                    <div style="font-size: 1.5rem; font-weight: bold;">{{ cat.total }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.875rem; color: #28a745;">Enabled</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">{{ cat.enabled }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.875rem; color: #dc3545;">Disabled</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">{{ cat.disabled }}</div>
+                </div>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div style="background-color: white; padding: 3rem; text-align: center; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <p style="font-size: 1.2rem; color: #6c757d; margin-bottom: 1rem;">No queries in the registry yet.</p>
+    <a href="{{ url_for('new_query_form') }}" class="btn">Add Your First Query</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add hover effect to category cards
+document.querySelectorAll('.stat-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-4px)';
+        this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+    });
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+    });
+});
+</script>
+{% endblock %}

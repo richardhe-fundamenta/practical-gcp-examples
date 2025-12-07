@@ -1,12 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Query Registry - BigQuery MCP Toolbox Admin{% endblock %}
+{% block title %}{{ category|capitalize }} Queries - BigQuery MCP Toolbox Admin{% endblock %}
 
 {% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary" style="text-decoration: none;">← Back to Categories</a>
+</div>
+
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h2>Query Registry</h2>
+    <h2 style="text-transform: capitalize;">{{ category }} Queries</h2>
     <div style="display: flex; gap: 1rem;">
-        <a href="{{ url_for('new_query') }}" class="btn">+ Add New Query</a>
+        <a href="{{ url_for('new_query_form') }}" class="btn">+ Add New Query</a>
         <button hx-post="{{ url_for('reload') }}"
                 hx-target="#toast-container"
                 hx-swap="beforeend"
@@ -40,7 +44,6 @@
     <thead>
         <tr>
             <th>Name</th>
-            <th>Category</th>
             <th>Description</th>
             <th>Cost Tier</th>
             <th>Status</th>
@@ -51,7 +54,6 @@
         {% for query in queries %}
         <tr>
             <td><strong>{{ query.query_name }}</strong></td>
-            <td>{{ query.query_category }}</td>
             <td>{{ query.description[:100] }}{% if query.description|length > 100 %}...{% endif %}</td>
             <td>
                 {% if query.estimated_cost_tier == 'LOW' %}
@@ -86,8 +88,8 @@
 </table>
 {% else %}
 <div style="background-color: white; padding: 3rem; text-align: center; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <p style="font-size: 1.2rem; color: #6c757d; margin-bottom: 1rem;">No queries in the registry yet.</p>
-    <a href="{{ url_for('new_query') }}" class="btn">Add Your First Query</a>
+    <p style="font-size: 1.2rem; color: #6c757d; margin-bottom: 1rem;">No queries in the {{ category }} category yet.</p>
+    <a href="{{ url_for('new_query_form') }}" class="btn">Add Your First Query</a>
 </div>
 {% endif %}
 {% endblock %}
