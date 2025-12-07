@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mode == 'new' %}Add New Query{% else %}Edit Query{% endif %} - BigQuery MCP Toolbox Admin{% endblock %}
+
+{% block content %}
+<div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h2>{% if mode == 'new' %}Add New Query{% else %}Edit Query: {{ query.query_name }}{% endif %}</h2>
+
+    <form method="POST" style="margin-top: 2rem;"
+          hx-post="{% if mode == 'new' %}/query/new{% else %}/query/{{ query.query_name }}/edit{% endif %}"
+          hx-target="#toast-container"
+          hx-swap="beforeend">
+        <div class="form-group">
+            <label for="query_name">Query Name *</label>
+            <input type="text"
+                   id="query_name"
+                   name="query_name"
+                   value="{{ query.query_name if query else '' }}"
+                   required
+                   {% if mode == 'edit' %}readonly style="background-color: #e9ecef;"{% endif %}>
+            <div class="help-text">Unique identifier for the query (lowercase, underscores allowed)</div>
+        </div>
+
+        <div class="form-group">
+            <label for="query_category">Category *</label>
+            <select id="query_category" name="query_category" required>
+                <option value="">Select a category...</option>
+                <option value="analytics" {% if query and query.query_category == 'analytics' %}selected{% endif %}>Analytics</option>
+                <option value="operations" {% if query and query.query_category == 'operations' %}selected{% endif %}>Operations</option>
+                <option value="reporting" {% if query and query.query_category == 'reporting' %}selected{% endif %}>Reporting</option>
+                <option value="ml" {% if query and query.query_category == 'ml' %}selected{% endif %}>ML/Data Science</option>
+                <option value="admin" {% if query and query.query_category == 'admin' %}selected{% endif %}>Admin</option>
+            </select>
+            <div class="help-text">Category determines the toolset for organization</div>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description *</label>
+            <textarea id="description" name="description" required style="font-family: inherit;">{{ query.description if query else '' }}</textarea>
+            <div class="help-text">Clear description of what the query does</div>
+        </div>
+
+        <div class="form-group">
+            <label for="query_sql">SQL Query *</label>
+            <textarea id="query_sql"
+                      name="query_sql"
+                      required
+                      style="min-height: 200px; font-family: 'Courier New', monospace;">{{ query.query_sql if query else '' }}</textarea>
+            <div class="help-text">Use <code>@parameter_name</code> for parameterized queries</div>
+        </div>
+
+        <div class="form-group">
+            <label for="parameters">Parameters (JSON)</label>
+            <textarea id="parameters"
+                      name="parameters"
+                      style="min-height: 120px; font-family: 'Courier New', monospace;">{{ query.parameters if query else '[]' }}</textarea>
+            <div class="help-text">
+                Example: <code>[{"name": "user_id", "type": "string", "description": "User ID", "required": true}]</code>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="estimated_cost_tier">Estimated Cost Tier</label>
+            <select id="estimated_cost_tier" name="estimated_cost_tier">
+                <option value="LOW" {% if query and query.estimated_cost_tier == 'LOW' %}selected{% endif %}>LOW</option>
+                <option value="MEDIUM" {% if query and query.estimated_cost_tier == 'MEDIUM' %}selected{% elif not query %}selected{% endif %}>MEDIUM</option>
+                <option value="HIGH" {% if query and query.estimated_cost_tier == 'HIGH' %}selected{% endif %}>HIGH</option>
+            </select>
+            <div class="help-text">Estimated cost tier for this query</div>
+        </div>
+
+        <div class="form-group">
+            <label for="max_execution_time_seconds">Max Execution Time (seconds)</label>
+            <input type="number"
+                   id="max_execution_time_seconds"
+                   name="max_execution_time_seconds"
+                   value="{{ query.max_execution_time_seconds if query else '' }}"
+                   min="1"
+                   max="3600">
+            <div class="help-text">Maximum expected execution time in seconds (optional)</div>
+        </div>
+
+        <div class="form-group">
+            <label for="tags">Tags</label>
+            <input type="text"
+                   id="tags"
+                   name="tags"
+                   value="{{ query.tags|join(', ') if query and query.tags else '' }}"
+                   placeholder="users, analytics, dashboard">
+            <div class="help-text">Comma-separated tags for categorization</div>
+        </div>
+
+        {% if mode == 'new' %}
+        <div class="form-group">
+            <label for="created_by">Created By</label>
+            <input type="email"
+                   id="created_by"
+                   name="created_by"
+                   value="admin@example.com"
+                   placeholder="user@example.com">
+            <div class="help-text">Email of the creator</div>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <div class="checkbox-wrapper">
+                <input type="checkbox"
+                       id="enabled"
+                       name="enabled"
+                       {% if (query and query.enabled) or mode == 'new' %}checked{% endif %}>
+                <label for="enabled" style="margin-bottom: 0;">Enable this query</label>
+            </div>
+            <div class="help-text">Disabled queries will not appear in the generated tools.yaml</div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn">{% if mode == 'new' %}Create Query{% else %}Update Query{% endif %}</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div style="margin-top: 2rem; background-color: #fff3cd; border: 1px solid #ffc107; padding: 1rem; border-radius: 4px;">
+    <strong>💡 Tip:</strong> After creating or updating queries, click the "Regenerate tools.yaml" button on the main page to apply changes without redeploying the service.
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Validate JSON on blur
+document.getElementById('parameters').addEventListener('blur', function() {
+    try {
+        if (this.value.trim()) {
+            JSON.parse(this.value);
+            this.style.borderColor = '#ced4da';
+        }
+    } catch (e) {
+        this.style.borderColor = '#dc3545';
+        alert('Invalid JSON in parameters field: ' + e.message);
+    }
+});
+</script>
+{% endblock %}

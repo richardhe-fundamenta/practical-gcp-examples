@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}{{ query.query_name }} - BigQuery MCP Toolbox Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to All Queries</a>
+</div>
+
+<div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>{{ query.query_name }}</h2>
+        <div style="display: flex; gap: 1rem;">
+            <a href="{{ url_for('edit_query', query_name=query.query_name) }}" class="btn">Edit</a>
+            <button hx-post="{{ url_for('delete_query', query_name=query.query_name) }}"
+                    hx-confirm="Are you sure you want to delete this query?"
+                    hx-target="#toast-container"
+                    hx-swap="beforeend"
+                    class="btn btn-danger">
+                Delete
+            </button>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Category</h3>
+            <p style="font-size: 1.125rem; font-weight: 600;">{{ query.query_category }}</p>
+        </div>
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Status</h3>
+            <p>
+                {% if query.enabled %}
+                    <span class="badge badge-enabled">Enabled</span>
+                {% else %}
+                    <span class="badge badge-disabled">Disabled</span>
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Cost Tier</h3>
+            <p style="font-size: 1.125rem; font-weight: 600;">
+                {% if query.estimated_cost_tier %}
+                    {{ query.estimated_cost_tier }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Max Execution Time</h3>
+            <p style="font-size: 1.125rem; font-weight: 600;">
+                {% if query.max_execution_time_seconds %}
+                    {{ query.max_execution_time_seconds }}s
+                {% else %}
+                    N/A
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Description</h3>
+        <p>{{ query.description }}</p>
+    </div>
+
+    {% if query.tags %}
+    <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Tags</h3>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            {% for tag in query.tags %}
+                <span class="badge" style="background-color: #e7f3ff; color: #1a73e8;">{{ tag }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">SQL Query</h3>
+        <pre style="background-color: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto;"><code>{{ query.query_sql }}</code></pre>
+    </div>
+
+    {% if query.parameters and query.parameters != '[]' %}
+    <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Parameters</h3>
+        <pre style="background-color: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto;"><code>{{ query.parameters | tojson(indent=2) }}</code></pre>
+    </div>
+    {% endif %}
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Created At</h3>
+            <p>{{ query.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') if query.created_at else 'N/A' }}</p>
+            {% if query.created_by %}
+            <p style="font-size: 0.875rem; color: #666;">by {{ query.created_by }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; text-transform: uppercase; margin-bottom: 0.5rem;">Last Updated</h3>
+            <p>{{ query.updated_at.strftime('%Y-%m-%d %H:%M:%S UTC') if query.updated_at else 'N/A' }}</p>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 2rem; background-color: #e7f3ff; border: 1px solid #1a73e8; padding: 1rem; border-radius: 4px;">
+    <strong>💡 Reminder:</strong> After editing this query, remember to regenerate tools.yaml from the main page to apply changes.
+</div>
+{% endblock %}

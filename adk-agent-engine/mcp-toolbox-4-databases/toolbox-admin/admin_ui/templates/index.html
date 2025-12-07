@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Query Registry - BigQuery MCP Toolbox Admin{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Query Registry</h2>
+    <div style="display: flex; gap: 1rem;">
+        <a href="{{ url_for('new_query') }}" class="btn">+ Add New Query</a>
+        <button hx-post="{{ url_for('reload') }}"
+                hx-target="#toast-container"
+                hx-swap="beforeend"
+                class="btn btn-success">
+            Submit All Changes
+        </button>
+    </div>
+</div>
+
+<div class="stats">
+    <div class="stat-card">
+        <h3>Total Queries</h3>
+        <div class="value">{{ stats.total }}</div>
+    </div>
+    <div class="stat-card">
+        <h3>Enabled</h3>
+        <div class="value" style="color: #28a745;">{{ stats.enabled }}</div>
+    </div>
+    <div class="stat-card">
+        <h3>Disabled</h3>
+        <div class="value" style="color: #dc3545;">{{ stats.disabled }}</div>
+    </div>
+    <div class="stat-card">
+        <h3>Categories</h3>
+        <div class="value" style="color: #6c757d;">{{ stats.categories }}</div>
+    </div>
+</div>
+
+{% if queries %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Cost Tier</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for query in queries %}
+        <tr>
+            <td><strong>{{ query.query_name }}</strong></td>
+            <td>{{ query.query_category }}</td>
+            <td>{{ query.description[:100] }}{% if query.description|length > 100 %}...{% endif %}</td>
+            <td>
+                {% if query.estimated_cost_tier == 'LOW' %}
+                    <span class="badge" style="background-color: #d4edda; color: #155724;">LOW</span>
+                {% elif query.estimated_cost_tier == 'MEDIUM' %}
+                    <span class="badge" style="background-color: #fff3cd; color: #856404;">MEDIUM</span>
+                {% elif query.estimated_cost_tier == 'HIGH' %}
+                    <span class="badge" style="background-color: #f8d7da; color: #721c24;">HIGH</span>
+                {% else %}
+                    <span class="badge" style="background-color: #e2e3e5; color: #383d41;">N/A</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if query.enabled %}
+                    <span class="badge badge-enabled">Enabled</span>
+                {% else %}
+                    <span class="badge badge-disabled">Disabled</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{{ url_for('view_query', query_name=query.query_name) }}" class="btn btn-small btn-secondary">View</a>
+                <a href="{{ url_for('edit_query', query_name=query.query_name) }}" class="btn btn-small">Edit</a>
+                <button onclick="toggleQuery('{{ query.query_name }}', {{ 'true' if query.enabled else 'false' }})"
+                        class="btn btn-small {% if query.enabled %}btn-secondary{% else %}btn-success{% endif %}"
+                        id="toggle-{{ query.query_name }}">
+                    {% if query.enabled %}Disable{% else %}Enable{% endif %}
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div style="background-color: white; padding: 3rem; text-align: center; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <p style="font-size: 1.2rem; color: #6c757d; margin-bottom: 1rem;">No queries in the registry yet.</p>
+    <a href="{{ url_for('new_query') }}" class="btn">Add Your First Query</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleQuery(queryName, currentState) {
+    if (confirm(`Are you sure you want to ${currentState ? 'disable' : 'enable'} query "${queryName}"?`)) {
+        // Use HTMX for toggle (or could use fetch)
+        fetch(`/query/${queryName}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the page to show updated state
+                location.reload();
+            } else {
+                // Show error toast
+                const toast = document.createElement('div');
+                toast.className = 'toast error';
+                toast.textContent = 'Error: ' + data.error;
+                document.getElementById('toast-container').appendChild(toast);
+                setTimeout(() => {
+                    toast.classList.add('removing');
+                    setTimeout(() => toast.remove(), 300);
+                }, 5000);
+            }
+        })
+        .catch(error => {
+            // Show error toast
+            const toast = document.createElement('div');
+            toast.className = 'toast error';
+            toast.textContent = 'Error toggling query: ' + error;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('removing');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BigQuery MCP Toolbox Admin{% endblock %}</title>
+
+    <!-- HTMX for dynamic interactions without full page reloads -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #1a73e8;
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        nav {
+            margin-top: 1rem;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-right: 1.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        nav a:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        /* Toast notification styles */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast.success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .toast.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .toast.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .toast::before {
+            content: '';
+            font-size: 1.25rem;
+        }
+
+        .toast.success::before {
+            content: '✓';
+        }
+
+        .toast.error::before {
+            content: '✗';
+        }
+
+        .toast.info::before {
+            content: 'ℹ';
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #1a73e8;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #1557b0;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        table {
+            width: 100%;
+            background-color: white;
+            border-collapse: collapse;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .badge-enabled {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-disabled {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-group .help-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: auto;
+        }
+
+        code {
+            background-color: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.875rem;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🛠️ BigQuery MCP Toolbox Admin</h1>
+            <nav>
+                <a href="{{ url_for('index') }}">All Queries</a>
+                <a href="{{ url_for('new_query') }}">Add New Query</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Toast notification container -->
+    <div id="toast-container"></div>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // HTMX toast notification handler
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            // Check if the response contains a toast notification
+            if (event.detail.target.id === 'toast-container') {
+                const toasts = event.detail.target.querySelectorAll('.toast');
+                toasts.forEach(toast => {
+                    // Auto-remove toast after 5 seconds
+                    setTimeout(() => {
+                        toast.classList.add('removing');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 5000);
+                });
+            }
+        });
+
+        // HTMX indicator for loading states
+        document.body.addEventListener('htmx:beforeRequest', function(event) {
+            const target = event.detail.elt;
+            if (target.tagName === 'FORM' || target.tagName === 'BUTTON') {
+                const submitBtn = target.querySelector('button[type="submit"]') || target;
+                if (submitBtn.tagName === 'BUTTON') {
+                    submitBtn.disabled = true;
+                    submitBtn.dataset.originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Processing...';
+                }
+            }
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            const target = event.detail.elt;
+            if (target.tagName === 'FORM' || target.tagName === 'BUTTON') {
+                const submitBtn = target.querySelector('button[type="submit"]') || target;
+                if (submitBtn.tagName === 'BUTTON' && submitBtn.dataset.originalText) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = submitBtn.dataset.originalText;
+                    delete submitBtn.dataset.originalText;
+                }
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
