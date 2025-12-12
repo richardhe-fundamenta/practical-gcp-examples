@@ -76,6 +76,11 @@ uv run python app.py
 4. **Enable/Disable**: Toggle queries on/off without deleting them
 5. **Submit All Changes**: Click "Submit All Changes" to regenerate tools.yaml
 
+**Note:**
+- In **debug mode** (`DEBUG_MODE=true` in `.env`), tools.yaml is written to a local file
+- In **production mode** (`DEBUG_MODE=false`), tools.yaml is written directly to Secret Manager
+- For Cloud Run deployments, the Admin UI automatically writes to Secret Manager
+
 ### Start the MCP Toolbox Server
 
 After generating tools.yaml, start the MCP Toolbox server:
@@ -105,6 +110,32 @@ The toolbox UI is a handy tool for testing
 ```
 
 
+## Deployment to Cloud Run
+
+### 1. Build Docker Images
+
+Build the Admin UI image:
+```bash
+./scripts/build_admin_ui.sh
+```
+
+Optionally mirror the official Toolbox image to your registry:
+```bash
+./scripts/build_toolbox.sh
+```
+
+### 2. Deploy with Terraform
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your values
+terraform init
+terraform apply
+```
+
+See [Terraform documentation](terraform/README.md) for details.
+
 ## Project Structure
 
 ```
@@ -113,6 +144,8 @@ toolbox-admin/
 ├── admin_ui/
 │   ├── app.py              # FastAPI web application
 │   ├── Dockerfile          # Production Dockerfile (FastAPI + uvicorn)
+│   ├── cloudbuild.yaml     # Cloud Build configuration
+│   ├── BUILD.md            # Build instructions
 │   ├── templates/          # HTML templates (Jinja2)
 │   ├── static/             # Static files (CSS, JS)
 │   └── utils/              # Utility modules
@@ -122,8 +155,15 @@ toolbox-admin/
 │   ├── schema.sql          # BigQuery registry table schema
 │   └── sample_queries.sql  # Sample query data
 ├── scripts/
-│   ├── deploy_schema.py    # Creates BigQuery registry table
-│   └── populate_sample_queries.py
+│   ├── deploy_schema.py      # Creates BigQuery registry table
+│   ├── populate_sample_queries.py
+│   ├── build_admin_ui.sh     # Build Admin UI image
+│   └── build_toolbox.sh      # Mirror official Toolbox image (optional)
+├── terraform/              # Infrastructure as Code
+│   ├── main.tf            # Main Terraform configuration
+│   ├── variables.tf       # Variable definitions
+│   ├── outputs.tf         # Output values
+│   └── README.md          # Terraform documentation
 ├── docs/
 │   └── DEPLOYMENT.md       # Cloud Run deployment guide
 ├── .env.example            # Example environment variables

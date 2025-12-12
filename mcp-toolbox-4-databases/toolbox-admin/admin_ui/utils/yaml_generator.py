@@ -1,10 +1,11 @@
 """YAML configuration generator for MCP Toolbox."""
 
 import logging
-from typing import Any
+from typing import Any, Optional
 from collections import defaultdict
 
 import yaml
+from google.cloud import secretmanager
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +150,22 @@ class ToolboxConfigGenerator:
 
         return formatted
 
+    def config_to_yaml_string(self, config: dict[str, Any]) -> str:
+        """Convert configuration to YAML string.
+
+        Args:
+            config: Configuration dictionary
+
+        Returns:
+            YAML formatted string
+        """
+        return yaml.safe_dump(
+            config,
+            default_flow_style=False,
+            sort_keys=False,
+            width=100,
+        )
+
     def save_config(self, config: dict[str, Any], output_path: str) -> None:
         """Save configuration to a YAML file.
 
@@ -174,6 +191,50 @@ class ToolboxConfigGenerator:
 
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
+            raise
+
+    def save_config_to_secret_manager(
+        self,
+        config: dict[str, Any],
+        project_id: str,
+        secret_id: str,
+    ) -> None:
+        """Save configuration to Google Cloud Secret Manager.
+
+        Args:
+            config: Configuration dictionary
+            project_id: GCP project ID
+            secret_id: Secret Manager secret ID
+
+        Raises:
+            Exception: If secret update fails
+        """
+        logger.info(f"Saving configuration to Secret Manager: {secret_id}")
+
+        try:
+            # Initialize Secret Manager client
+            client = secretmanager.SecretManagerServiceClient()
+
+            # Convert config to YAML string
+            yaml_content = self.config_to_yaml_string(config)
+
+            # Create the secret version
+            parent = client.secret_path(project_id, secret_id)
+            payload = yaml_content.encode("UTF-8")
+
+            response = client.add_secret_version(
+                request={
+                    "parent": parent,
+                    "payload": {"data": payload},
+                }
+            )
+
+            logger.info(
+                f"Successfully saved configuration to Secret Manager: {response.name}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to save configuration to Secret Manager: {e}")
             raise
 
     def validate_config(self, config: dict[str, Any]) -> bool:

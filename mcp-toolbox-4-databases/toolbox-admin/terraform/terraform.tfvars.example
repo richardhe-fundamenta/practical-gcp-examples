@@ -1,0 +1,23 @@
+# Copy this file to terraform.tfvars and fill in your values
+
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# Admin UI Docker image (build with: ./scripts/build.sh)
+admin_ui_image = "us-central1-docker.pkg.dev/your-gcp-project-id/mcp-toolbox/admin-ui:latest"
+
+# Tools.yaml content - paste the entire content of your tools.yaml file here
+# You can also load from a file using: file("../tools.yaml")
+tools_yaml_content = <<-EOT
+# Your tools.yaml content goes here
+EOT
+
+# Optional: Override defaults
+# registry_dataset               = "example_mcp_toolbox_4_dbs"
+# registry_table                 = "query_registry"
+# bigquery_source_name           = "bigquery-source"
+# admin_ui_service_account_name  = "mcp-admin-ui-sa"
+# toolbox_service_account_name   = "mcp-toolbox-sa"
+# admin_ui_max_instances         = 10
+# toolbox_max_instances          = 10
+# allow_unauthenticated          = true

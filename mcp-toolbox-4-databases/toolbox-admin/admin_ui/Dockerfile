@@ -12,14 +12,16 @@ RUN apt-get update && apt-get install -y \
 # Add uv to PATH
 ENV PATH="/root/.cargo/bin:$PATH"
 
-# Copy dependency files from parent directory
-COPY ../pyproject.toml ./pyproject.toml
+# Copy dependency files from project root
+# NOTE: Build context must be the project root directory
+# Build command: docker build -f admin_ui/Dockerfile .
+COPY pyproject.toml ./pyproject.toml
 
-# Install Python dependencies using uv
+# Copy admin_ui application code (needed before install for editable mode)
+COPY admin_ui ./admin_ui/
+
+# Install Python dependencies using uv (editable mode requires source files)
 RUN uv pip install --system -e .
-
-# Copy admin_ui application code
-COPY . ./admin_ui/
 
 # Set working directory to admin_ui
 WORKDIR /app/admin_ui
@@ -30,6 +32,8 @@ ENV PROJECT_ID="" \
     REGISTRY_TABLE="query_registry" \
     BIGQUERY_SOURCE_NAME="bigquery-source" \
     TOOLS_FILE="/app/tools.yaml" \
+    DEBUG_MODE="false" \
+    SECRET_NAME="mcp-tools-yaml" \
     LOG_LEVEL="INFO" \
     PYTHONUNBUFFERED=1
 

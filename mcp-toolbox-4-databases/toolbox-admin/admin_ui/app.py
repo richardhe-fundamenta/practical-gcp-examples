@@ -51,6 +51,8 @@ PROJECT_ID = os.getenv("PROJECT_ID")
 REGISTRY_DATASET = os.getenv("REGISTRY_DATASET", "config")
 REGISTRY_TABLE = os.getenv("REGISTRY_TABLE", "query_registry")
 TOOLS_FILE = os.getenv("TOOLS_FILE", "tools.yaml")
+DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() in ("true", "1", "yes")
+SECRET_NAME = os.getenv("SECRET_NAME", "mcp-tools-yaml")
 
 # Initialize BigQuery client
 bq_client = bigquery.Client(project=PROJECT_ID)
@@ -218,17 +220,17 @@ def get_categories() -> list[dict[str, Any]]:
 
 
 def regenerate_tools_yaml() -> tuple[bool, str]:
-    """Regenerate tools.yaml file by running the generator script.
+    """Regenerate tools.yaml configuration and save to Secret Manager or local file.
+
+    In production (DEBUG_MODE=false), saves to Secret Manager.
+    In debug mode (DEBUG_MODE=true), saves to local file.
 
     Returns:
         Tuple of (success: bool, message: str)
     """
     try:
         logger.info("Triggering tools.yaml regeneration...")
-
-        # Get the project root directory (parent of admin_ui)
-        project_root = Path(__file__).parent.parent
-        output_file = project_root / TOOLS_FILE
+        logger.info(f"Debug mode: {DEBUG_MODE}")
 
         # Initialize QueryRegistry
         logger.info("Initializing BigQuery client...")
@@ -266,18 +268,31 @@ def regenerate_tools_yaml() -> tuple[bool, str]:
 
         logger.info("Configuration validation passed")
 
-        # Save configuration
-        logger.info(f"Saving configuration to {output_file}...")
-        generator.save_config(config, str(output_file))
+        # Save configuration based on mode
+        if DEBUG_MODE:
+            # Debug mode: Save to local file
+            project_root = Path(__file__).parent.parent
+            output_file = project_root / TOOLS_FILE
+            logger.info(f"[DEBUG MODE] Saving configuration to local file: {output_file}")
+            generator.save_config(config, str(output_file))
 
-        # Verify the file was created
-        if output_file.exists():
-            file_size = output_file.stat().st_size
-            logger.info(f"Successfully created {output_file} ({file_size:,} bytes)")
-            return True, f"Configuration regenerated successfully! ({len(queries)} queries)"
+            # Verify the file was created
+            if output_file.exists():
+                file_size = output_file.stat().st_size
+                logger.info(f"Successfully created {output_file} ({file_size:,} bytes)")
+                return True, f"[DEBUG] Configuration saved to {output_file} ({len(queries)} queries)"
+            else:
+                logger.error(f"Failed to create {output_file}")
+                return False, f"Failed to create {output_file}"
         else:
-            logger.error(f"Failed to create {output_file}")
-            return False, f"Failed to create {output_file}"
+            # Production mode: Save to Secret Manager
+            logger.info(f"[PRODUCTION MODE] Saving configuration to Secret Manager: {SECRET_NAME}")
+            generator.save_config_to_secret_manager(
+                config=config,
+                project_id=PROJECT_ID,
+                secret_id=SECRET_NAME,
+            )
+            return True, f"Configuration saved to Secret Manager ({len(queries)} queries)"
 
     except Exception as e:
         logger.error(f"Error during regeneration: {e}", exc_info=True)

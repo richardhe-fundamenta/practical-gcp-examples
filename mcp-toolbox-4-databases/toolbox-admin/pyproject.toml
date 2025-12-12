@@ -16,6 +16,7 @@ classifiers = [
 ]
 dependencies = [
     "google-cloud-bigquery>=3.25.0",
+    "google-cloud-secret-manager>=2.20.0",
     "PyYAML>=6.0.2",
     "python-dotenv>=1.0.1",
     "fastapi>=0.115.0",
