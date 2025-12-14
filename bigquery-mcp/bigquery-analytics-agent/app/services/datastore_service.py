@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import re
 from typing import Any, Optional
 
@@ -10,7 +11,8 @@ import httpx
 import vertexai
 from vertexai.generative_models import GenerativeModel
 
-from ..shared.models import Category, DatastoreClient, QueryTemplate
+from app import config
+from app.shared.models import Category, DatastoreClient, QueryTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +30,8 @@ class DatastoreService:
         self.datastore_client = DatastoreClient(project_id)
 
         # Initialize Gemini for query explanations
-        vertexai.init(project=project_id, location="global")
-        self.gemini_model = GenerativeModel("gemini-3-pro-preview")
+        vertexai.init(project=project_id, location=config.GOOGLE_CLOUD_LOCATION)
+        self.gemini_model = GenerativeModel(config.GEMINI_MODEL)
 
         # Initialize credentials for MCP calls
         self.credentials, _ = google.auth.default(

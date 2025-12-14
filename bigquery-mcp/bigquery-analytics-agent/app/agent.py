@@ -20,6 +20,7 @@ import logging
 
 from google.adk.agents import Agent
 from google.adk.apps.app import App
+from app import config
 from . import explore_tools
 from . import production_tools
 from .services.datastore_service import DatastoreService
@@ -29,7 +30,6 @@ logger = logging.getLogger(__name__)
 # Initialize project and environment
 _, project_id = google.auth.default()
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
-os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
 # Initialize services
@@ -75,7 +75,7 @@ production_toolset = production_tools.get_tools(datastore_service)
 # Create agent with all tools
 root_agent = Agent(
     name="bigquery_analytics_agent",
-    model="gemini-3-pro-preview",
+    model=config.GEMINI_MODEL,
     instruction=unified_instruction,
     tools=[bigquery_toolset] + production_toolset
 )

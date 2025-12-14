@@ -29,6 +29,8 @@ from dotenv import dotenv_values
 from vertexai._genai import _agent_engines_utils
 from vertexai._genai.types import AgentEngine, AgentEngineConfig
 
+from app import config
+
 # Suppress google-cloud-storage version compatibility warning
 warnings.filterwarnings(
     "ignore", category=FutureWarning, module="google.cloud.aiplatform"
@@ -144,8 +146,8 @@ def print_deployment_success(
 )
 @click.option(
     "--location",
-    default="us-central1",
-    help="GCP region (defaults to us-central1)",
+    default=config.GOOGLE_CLOUD_LOCATION,
+    help=f"GCP region (defaults to {config.GOOGLE_CLOUD_LOCATION})",
 )
 @click.option(
     "--display-name",
