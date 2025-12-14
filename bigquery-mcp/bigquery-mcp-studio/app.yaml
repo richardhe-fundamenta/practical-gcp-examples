@@ -1,0 +1,19 @@
+# Cloud Run service configuration (optional)
+# This file documents the service configuration
+# Actual deployment uses gcloud commands in Makefile
+
+service: bigquery-mcp-studio
+
+runtime: python311
+
+env_variables:
+  PYTHON_VERSION: "3.11"
+
+resources:
+  cpu: 1
+  memory_gb: 0.5
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 10
+  target_cpu_utilization: 0.7

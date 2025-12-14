@@ -1,0 +1,7 @@
+indexes:
+  # Index for querying QueryTemplates by category with created_at ordering
+  - kind: QueryTemplate
+    properties:
+      - name: category
+      - name: created_at
+        direction: desc

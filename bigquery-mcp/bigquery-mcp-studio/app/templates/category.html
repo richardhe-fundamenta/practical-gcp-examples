@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category_id }} - BigQuery MCP Studio{% endblock %}
+
+{% block content %}
+<div x-data="categoryData('{{ category_id }}')" x-init="loadQueries()">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center mb-4">
+            <a href="/" class="text-blue-600 hover:text-blue-800 mr-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+            </a>
+            <h1 class="text-3xl font-bold text-gray-900" x-text="categoryName"></h1>
+        </div>
+        <div class="flex justify-between items-center">
+            <p class="text-gray-600" x-text="queries.length + ' queries'"></p>
+            <a :href="'/editor?category=' + categoryId" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                New Query
+            </a>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!loading && queries.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No queries</h3>
+        <p class="mt-1 text-sm text-gray-500">Create your first query in this category.</p>
+    </div>
+
+    <!-- Query List -->
+    <div x-show="!loading && queries.length > 0" class="bg-white shadow rounded-lg overflow-hidden">
+        <ul class="divide-y divide-gray-200">
+            <template x-for="query in queries" :key="query.id">
+                <li class="query-card p-6">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-medium text-gray-900 mb-2" x-text="query.name"></h3>
+                            <p class="text-sm text-gray-600 mb-3" x-text="query.description"></p>
+
+                            <!-- Parameters -->
+                            <div x-show="query.parameters && query.parameters.length > 0" class="mb-3">
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="param in query.parameters" :key="param.name">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            <code x-text="'@' + param.name"></code>
+                                            <span class="ml-1 text-gray-500" x-text="'(' + param.type + ')'"></span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Metadata -->
+                            <div class="flex items-center text-xs text-gray-500 space-x-4">
+                                <span x-text="'Created: ' + new Date(query.created_at).toLocaleDateString()"></span>
+                                <span x-text="'v' + query.version"></span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="ml-4 flex flex-col space-y-2">
+                            <a :href="'/tester/' + query.id" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Test
+                            </a>
+                            <a :href="'/editor?query_id=' + query.id" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Edit
+                            </a>
+                            <button @click="deleteQuery(query.id)" class="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </li>
+            </template>
+        </ul>
+    </div>
+</div>
+
+<script>
+function categoryData(categoryId) {
+    return {
+        categoryId: categoryId,
+        categoryName: categoryId.replace(/_/g, ' ').replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+        loading: true,
+        queries: [],
+
+        async loadQueries() {
+            try {
+                const response = await fetch(`/api/queries?category=${this.categoryId}`);
+                const data = await response.json();
+                this.queries = data.queries;
+            } catch (error) {
+                console.error('Error loading queries:', error);
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Failed to load queries', type: 'error' }
+                }));
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async deleteQuery(queryId) {
+            if (!confirm('Are you sure you want to delete this query?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/queries/${queryId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete query');
+                }
+
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Query deleted successfully', type: 'success' }
+                }));
+
+                await this.loadQueries();
+            } catch (error) {
+                console.error('Error deleting query:', error);
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Failed to delete query', type: 'error' }
+                }));
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

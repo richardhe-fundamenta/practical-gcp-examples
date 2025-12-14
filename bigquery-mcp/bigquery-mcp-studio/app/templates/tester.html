@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Test Query - BigQuery MCP Studio{% endblock %}
+
+{% block content %}
+<div x-data="testerData('{{ query_id }}')" x-init="loadQuery()">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center mb-4">
+            <a :href="'/category/' + (query ? query.category : '')" class="text-blue-600 hover:text-blue-800 mr-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+            </a>
+            <h1 class="text-3xl font-bold text-gray-900">Test Query</h1>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+
+    <!-- Query Info -->
+    <div x-show="!loading && query" class="space-y-6">
+        <!-- Query Details -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-2" x-text="query.name"></h2>
+            <p class="text-gray-600 mb-4" x-text="query.description"></p>
+
+            <!-- SQL Display -->
+            <div class="bg-gray-50 rounded-md p-4 border border-gray-200">
+                <h3 class="text-sm font-medium text-gray-700 mb-2">SQL Query</h3>
+                <pre class="sql-editor text-sm overflow-x-auto" x-text="query.sql_query"></pre>
+            </div>
+        </div>
+
+        <!-- Parameters Input -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Parameters</h2>
+
+            <div x-show="query.parameters && query.parameters.length === 0" class="text-center py-8 text-gray-500">
+                This query has no parameters
+            </div>
+
+            <div class="space-y-4">
+                <template x-for="param in query.parameters" :key="param.name">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <code x-text="'@' + param.name"></code>
+                            <span x-show="param.required" class="text-red-500">*</span>
+                            <span class="text-gray-500 text-xs ml-2" x-text="'(' + param.type + ')'"></span>
+                        </label>
+                        <input x-model="parameters[param.name]" type="text" :required="param.required"
+                               :placeholder="getPlaceholder(param.type)"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="mt-1 text-xs text-gray-500" x-text="param.description"></p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Execution Controls -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Execute Query</h2>
+                <div class="flex items-center space-x-4">
+                    <label class="text-sm text-gray-700">Max Results:</label>
+                    <input x-model.number="maxResults" type="number" min="1" max="1000" value="100"
+                           class="w-24 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <button @click="executeQuery()" :disabled="executing"
+                    class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg x-show="!executing" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div x-show="executing" class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                <span x-text="executing ? 'Executing...' : 'Execute Query'"></span>
+            </button>
+        </div>
+
+        <!-- Results -->
+        <div x-show="results" class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Results</h2>
+
+            <div x-show="results && results.error" class="bg-red-50 border border-red-200 rounded-md p-4">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Execution Error</h3>
+                        <p class="mt-1 text-sm text-red-700" x-text="results.error"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="results && !results.error" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-gray-600">
+                        Query executed successfully
+                    </p>
+                    <button @click="copyResults()" class="text-sm text-blue-600 hover:text-blue-800">
+                        Copy Results
+                    </button>
+                </div>
+
+                <div class="bg-gray-50 rounded-md p-4 border border-gray-200">
+                    <pre class="text-xs overflow-x-auto" x-text="results.results"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="flex justify-end space-x-4">
+            <a :href="'/editor?query_id=' + queryId" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit Query
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function testerData(queryId) {
+    return {
+        queryId: queryId,
+        query: null,
+        loading: true,
+        executing: false,
+        parameters: {},
+        maxResults: 100,
+        results: null,
+
+        async loadQuery() {
+            try {
+                const response = await fetch(`/api/queries/${this.queryId}`);
+                if (!response.ok) throw new Error('Query not found');
+
+                const data = await response.json();
+                this.query = data.query;
+
+                // Initialize parameters object
+                this.query.parameters.forEach(param => {
+                    this.parameters[param.name] = '';
+                });
+            } catch (error) {
+                console.error('Error loading query:', error);
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Failed to load query', type: 'error' }
+                }));
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async executeQuery() {
+            // Validate required parameters
+            const missingParams = [];
+            this.query.parameters.forEach(param => {
+                if (param.required && (!this.parameters[param.name] || this.parameters[param.name].trim() === '')) {
+                    missingParams.push(param.name);
+                }
+            });
+
+            if (missingParams.length > 0) {
+                this.results = {
+                    error: `Please fill in all required parameters: ${missingParams.map(p => '@' + p).join(', ')}`
+                };
+                return;
+            }
+
+            this.executing = true;
+            this.results = null;
+
+            try {
+                const response = await fetch('/api/mcp/execute-query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query_id: this.queryId,
+                        parameters: this.parameters,
+                        max_results: this.maxResults
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    this.results = { error: error.detail || 'Failed to execute query' };
+                } else {
+                    const data = await response.json();
+                    this.results = data;
+                }
+            } catch (error) {
+                console.error('Error executing query:', error);
+                this.results = { error: 'Failed to execute query: ' + error.message };
+            } finally {
+                this.executing = false;
+            }
+        },
+
+        getPlaceholder(type) {
+            const placeholders = {
+                'STRING': 'Enter text',
+                'INT64': '123',
+                'FLOAT64': '123.45',
+                'BOOL': 'true or false',
+                'DATE': '2024-01-01',
+                'DATETIME': '2024-01-01 12:00:00',
+                'TIMESTAMP': '2024-01-01T12:00:00Z'
+            };
+            return placeholders[type] || 'Enter value';
+        },
+
+        copyResults() {
+            if (this.results && this.results.results) {
+                navigator.clipboard.writeText(this.results.results);
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Results copied to clipboard', type: 'success' }
+                }));
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

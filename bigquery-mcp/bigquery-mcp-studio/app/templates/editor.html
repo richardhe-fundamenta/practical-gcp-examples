@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Query Editor - BigQuery MCP Studio{% endblock %}
+
+{% block content %}
+<div x-data="editorData()" x-init="init()">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center mb-4">
+            <a href="/" class="text-blue-600 hover:text-blue-800 mr-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+            </a>
+            <h1 class="text-3xl font-bold text-gray-900" x-text="queryId ? 'Edit Query' : 'Create Query'"></h1>
+        </div>
+    </div>
+
+    <!-- MCP Assistant -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">MCP Assistant</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Describe your query in natural language
+                </label>
+                <textarea x-model="nlDescription" rows="3"
+                          placeholder="e.g., Get all orders for a customer within a date range"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+            <button @click="generateSQL()" :disabled="generating || !nlDescription"
+                    class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg x-show="!generating" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <div x-show="generating" class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <span x-text="generating ? 'Generating...' : 'Generate SQL with MCP'"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Query Form -->
+    <form @submit.prevent="saveQuery()" class="space-y-6">
+        <!-- Basic Info -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Query Details</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                    <input x-model="query.name" type="text" required
+                           placeholder="e.g., Customer Orders by Date Range"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea x-model="query.description" rows="2" required
+                              placeholder="What does this query do?"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <input x-model="query.category" type="text" required
+                           placeholder="e.g., finance, product, admin"
+                           pattern="[a-z0-9_-]+"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="mt-1 text-xs text-gray-500">Lowercase letters, numbers, hyphens, and underscores only</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SQL Editor -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">SQL Query</h2>
+            <textarea x-model="query.sql_query" rows="12" required
+                      placeholder="SELECT * FROM project.dataset.table WHERE date > @start_date"
+                      class="sql-editor w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <p class="mt-2 text-sm text-gray-600">Use BigQuery parameter syntax: <code class="bg-gray-100 px-1 py-0.5 rounded">@parameter_name</code></p>
+        </div>
+
+        <!-- Parameters -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Parameters</h2>
+                <button type="button" @click="addParameter()" class="text-sm text-blue-600 hover:text-blue-800">
+                    + Add Parameter
+                </button>
+            </div>
+
+            <div x-show="query.parameters.length === 0" class="text-center py-8 text-gray-500">
+                No parameters defined. Add parameters or generate SQL with MCP to auto-detect them.
+            </div>
+
+            <div class="space-y-4">
+                <template x-for="(param, index) in query.parameters" :key="index">
+                    <div class="border border-gray-200 rounded-md p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                <input x-model="param.name" type="text" required
+                                       placeholder="parameter_name"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <select x-model="param.type" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="STRING">STRING</option>
+                                    <option value="INT64">INT64</option>
+                                    <option value="FLOAT64">FLOAT64</option>
+                                    <option value="BOOL">BOOL</option>
+                                    <option value="DATE">DATE</option>
+                                    <option value="DATETIME">DATETIME</option>
+                                    <option value="TIMESTAMP">TIMESTAMP</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <input x-model="param.description" type="text" required
+                                       placeholder="What is this parameter for?"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="md:col-span-2 flex items-center justify-between">
+                                <label class="flex items-center">
+                                    <input x-model="param.required" type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700">Required</span>
+                                </label>
+                                <button type="button" @click="query.parameters.splice(index, 1)" class="text-sm text-red-600 hover:text-red-800">
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Test Section -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Test Query</h2>
+
+            <!-- Test Parameters -->
+            <div class="space-y-3 mb-4">
+                <template x-for="param in query.parameters" :key="param.name">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <code x-text="'@' + param.name"></code>
+                            <span class="text-gray-500 text-xs ml-2" x-text="'(' + param.type + ')'"></span>
+                        </label>
+                        <input x-model="testParams[param.name]" type="text"
+                               :placeholder="getPlaceholder(param.type)"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </template>
+            </div>
+
+            <button type="button" @click="testQuery()" :disabled="testing"
+                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <div x-show="testing" class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <span x-text="testing ? 'Testing...' : 'Test Query'"></span>
+            </button>
+
+            <!-- Test Results -->
+            <div x-show="testResults" class="mt-4">
+                <div x-show="testResults && testResults.valid" class="bg-green-50 border border-green-200 rounded-md p-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="ml-3 flex-1">
+                            <h4 class="text-sm font-medium text-green-800">Query is valid!</h4>
+                            <p class="text-sm text-green-700 mt-1" x-text="'Returned ' + (testResults.row_count || 0) + ' rows'"></p>
+                            <pre class="mt-2 text-xs bg-white border border-green-200 rounded p-2 overflow-x-auto" x-text="testResults.results"></pre>
+                        </div>
+                    </div>
+                </div>
+                <div x-show="testResults && !testResults.valid" class="bg-red-50 border border-red-200 rounded-md p-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="ml-3 flex-1">
+                            <h4 class="text-sm font-medium text-red-800">Query failed</h4>
+                            <p class="text-sm text-red-700 mt-1" x-text="testResults.error"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end space-x-4">
+            <button type="button" @click="window.history.back()" class="px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Cancel
+            </button>
+            <button type="submit" :disabled="saving || !testResults || !testResults.valid"
+                    class="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span x-text="saving ? 'Saving...' : (queryId ? 'Update Query' : 'Save Query')"></span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function editorData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryId = urlParams.get('query_id');
+    const categoryParam = urlParams.get('category');
+
+    return {
+        queryId: queryId,
+        query: {
+            name: '',
+            description: '',
+            category: categoryParam || '',
+            sql_query: '',
+            parameters: []
+        },
+        nlDescription: '',
+        testParams: {},
+        testResults: null,
+        generating: false,
+        testing: false,
+        saving: false,
+
+        async init() {
+            if (this.queryId) {
+                await this.loadQuery();
+            }
+        },
+
+        async loadQuery() {
+            try {
+                const response = await fetch(`/api/queries/${this.queryId}`);
+                const data = await response.json();
+                this.query = data.query;
+            } catch (error) {
+                console.error('Error loading query:', error);
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Failed to load query', type: 'error' }
+                }));
+            }
+        },
+
+        async generateSQL() {
+            this.generating = true;
+            try {
+                const response = await fetch('/api/mcp/generate-sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: this.nlDescription })
+                });
+
+                if (!response.ok) throw new Error('Failed to generate SQL');
+
+                const data = await response.json();
+                this.query.sql_query = data.sql;
+                this.query.parameters = data.parameters;
+
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'SQL generated successfully!', type: 'success' }
+                }));
+            } catch (error) {
+                console.error('Error generating SQL:', error);
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Failed to generate SQL', type: 'error' }
+                }));
+            } finally {
+                this.generating = false;
+            }
+        },
+
+        async testQuery() {
+            // Validate required parameters
+            const missingParams = [];
+            this.query.parameters.forEach(param => {
+                if (param.required && (!this.testParams[param.name] || this.testParams[param.name].trim() === '')) {
+                    missingParams.push(param.name);
+                }
+            });
+
+            if (missingParams.length > 0) {
+                this.testResults = {
+                    valid: false,
+                    error: `Please fill in all required parameters: ${missingParams.map(p => '@' + p).join(', ')}`
+                };
+                return;
+            }
+
+            this.testing = true;
+            this.testResults = null;
+
+            try {
+                const response = await fetch('/api/mcp/validate-query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sql_query: this.query.sql_query,
+                        test_parameters: this.testParams
+                    })
+                });
+
+                this.testResults = await response.json();
+            } catch (error) {
+                console.error('Error testing query:', error);
+                this.testResults = {
+                    valid: false,
+                    error: 'Failed to test query: ' + error.message
+                };
+            } finally {
+                this.testing = false;
+            }
+        },
+
+        async saveQuery() {
+            this.saving = true;
+
+            try {
+                const url = this.queryId ? `/api/queries/${this.queryId}` : '/api/queries';
+                const method = this.queryId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.query)
+                });
+
+                if (!response.ok) throw new Error('Failed to save query');
+
+                const data = await response.json();
+
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Query saved successfully!', type: 'success' }
+                }));
+
+                // Redirect to category page
+                setTimeout(() => {
+                    window.location.href = `/category/${this.query.category}`;
+                }, 1000);
+            } catch (error) {
+                console.error('Error saving query:', error);
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message: 'Failed to save query', type: 'error' }
+                }));
+            } finally {
+                this.saving = false;
+            }
+        },
+
+        addParameter() {
+            this.query.parameters.push({
+                name: '',
+                type: 'STRING',
+                description: '',
+                required: true
+            });
+        },
+
+        getPlaceholder(type) {
+            const placeholders = {
+                'STRING': 'Enter text',
+                'INT64': '123',
+                'FLOAT64': '123.45',
+                'BOOL': 'true or false',
+                'DATE': '2024-01-01',
+                'DATETIME': '2024-01-01 12:00:00',
+                'TIMESTAMP': '2024-01-01T12:00:00Z'
+            };
+            return placeholders[type] || 'Enter value';
+        }
+    }
+}
+</script>
+{% endblock %}
