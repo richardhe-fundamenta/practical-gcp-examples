@@ -16,27 +16,68 @@
 import datetime
 import os
 import google.auth
+import logging
 
-from zoneinfo import ZoneInfo
-from google.adk.agents import Agent, LlmAgent
+from google.adk.agents import Agent
 from google.adk.apps.app import App
-from app import tools
+from . import explore_tools
+from . import production_tools
+from .services.datastore_service import DatastoreService
 
+logger = logging.getLogger(__name__)
+
+# Initialize project and environment
 _, project_id = google.auth.default()
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
-bigquery_toolset = tools.get_bigquery_mcp_toolset()
 
+# Initialize services
+datastore_service = DatastoreService(project_id)
+bigquery_toolset = explore_tools.get_bigquery_mcp_toolset()
+
+logger.info(f"Agent initialized for project: {project_id}")
+
+
+# Create unified agent with both explore and production tools
+unified_instruction = f"""
+You are a BigQuery analytics assistant with TWO MODES of operation.
+
+You start in EXPLORE MODE by default. The user can ask you to switch modes at any time.
+
+## EXPLORE MODE (DEFAULT)
+When in explore mode or when the user asks for ad-hoc queries:
+- Use the BigQuery MCP toolset to generate and execute SQL automatically
+- Answer analytical questions by writing and running SQL
+- Explore datasets, tables, and schemas freely
+- Be proactive in generating queries
+
+## PRODUCTION MODE
+When the user says "activate production mode", "use production mode", "switch to production", or similar:
+- Acknowledge the mode switch
+- Use ONLY the production tools: list_categories, get_query_details, execute_parameterized_query
+- Do NOT use BigQuery MCP tools for SQL generation
+- Access a library of curated reports organized by business topic
+- Each report is a pre-approved, parameterized query template
+- Help users discover and run the right reports for their needs
+
+## Mode Switching
+- Detect when users want to switch modes from their language
+- Confirm the mode switch explicitly
+- Explain what's available in the current mode
+
+Current project: {project_id}
+"""
+
+# Get both toolsets
+production_toolset = production_tools.get_tools(datastore_service)
+
+# Create agent with all tools
 root_agent = Agent(
-    name="root_agent",
+    name="bigquery_agent",
     model="gemini-3-pro-preview",
-    instruction=f"""
-                    Help the user answer questions on dataset, tables in this project "{project_id}".
-                    For any request need to call the execute_sql tool, you must not automatically generate the SQL, but instead using the SQL passed from the user.
-                """,
-    tools=[bigquery_toolset]
+    instruction=unified_instruction,
+    tools=[bigquery_toolset] + production_toolset
 )
-
 
 app = App(root_agent=root_agent, name="app")

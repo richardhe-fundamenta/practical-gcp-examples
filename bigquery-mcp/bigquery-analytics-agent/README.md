@@ -1,7 +1,13 @@
 # bigquery-analytics-agent
 
-A base ReAct agent built with Google's Agent Development Kit (ADK)
-Agent generated with [`googleCloudPlatform/agent-starter-pack`](https://github.com/GoogleCloudPlatform/agent-starter-pack) version `0.28.0`
+A dual-mode BigQuery analytics agent with curated report library built with Google's Agent Development Kit (ADK).
+
+## Features
+
+- **Explore Mode** (default): Generate and execute ad-hoc SQL queries automatically via BigQuery MCP
+- **Production Mode**: Access curated reports organized by business topic from Cloud Datastore
+- **Seamless Mode Switching**: Switch between modes anytime during conversation
+- **Natural Language Report Explanations**: Understand what reports do without reading SQL
 
 ## Project Structure
 
@@ -10,8 +16,14 @@ This project is organized as follows:
 ```
 bigquery-analytics-agent/
 ├── app/                 # Core application code
-│   ├── agent.py         # Main agent logic
+│   ├── agent.py         # Dual-mode agent logic
 │   ├── agent_engine_app.py # Agent Engine application logic
+│   ├── explore_tools.py # Explore mode tools (BigQuery MCP)
+│   ├── production_tools.py # Production mode tools
+│   ├── services/        # Service layer
+│   │   └── datastore_service.py # Datastore integration
+│   ├── shared/          # Shared models
+│   │   └── models.py    # Datastore models
 │   └── app_utils/       # App utilities and helpers
 ├── tests/               # Unit, integration, and load tests
 ├── Makefile             # Makefile for common commands
@@ -60,6 +72,47 @@ This template follows a "bring your own agent" approach - you focus on your busi
 3. **Enhance:** When ready for production, run `uvx agent-starter-pack enhance` to add CI/CD pipelines, Terraform infrastructure, and evaluation notebooks.
 
 The project includes a `GEMINI.md` file that provides context for AI tools like Gemini CLI when asking questions about your template.
+
+## Dual-Mode Operation
+
+The agent supports two operating modes:
+
+### Explore Mode (Default)
+Generate and execute SQL queries automatically. Ask any questions about your BigQuery data.
+
+**Example:**
+```
+User: "How many orders were placed in December 2024?"
+Agent: [Generates SQL, executes, returns results]
+```
+
+### Production Mode
+Access a library of curated reports organized by business topic. Each report is a pre-approved, parameterized query template managed via BigQuery MCP Studio.
+
+**Workflow:**
+1. Browse reports by topic: `"list categories"` or `"show available reports"`
+2. Understand a report: `"tell me about [report name or ID]"` - get natural language explanation
+3. Run a report with parameters: `"run customer details report with customer_id=12345"`
+
+**Example:**
+```
+User: "What reports are available?"
+Agent: [Shows categories like Finance, Sales, Customer Analytics with example reports]
+
+User: "Tell me about the monthly revenue report"
+Agent: [Explains what the report shows and what parameters it needs]
+
+User: "Run it for December 2024"
+Agent: [Executes report with provided parameters, returns results]
+```
+
+### Switching Modes
+
+Use natural language to switch:
+- **To Explore**: `"switch to explore mode"` or `"use ad-hoc queries"`
+- **To Production**: `"activate production mode"` or `"show me the reports"`
+
+The agent uses intent detection and allows switching anytime during conversation.
 
 
 ## Deployment

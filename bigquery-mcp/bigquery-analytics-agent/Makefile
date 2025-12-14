@@ -16,11 +16,20 @@ playground:
 	@echo "==============================================================================="
 	@echo "| 🚀 Starting your agent playground...                                        |"
 	@echo "|                                                                             |"
-	@echo "| 💡 Try asking: What's the weather in San Francisco?                         |"
+	@echo "| 💡 Access at: http://127.0.0.1:8501                                         |"
+	@echo "| 💡 If UI doesn't load, try hard refresh (Ctrl+Shift+R) or incognito mode   |"
 	@echo "|                                                                             |"
 	@echo "| 🔍 IMPORTANT: Select the 'app' folder to interact with your agent.          |"
 	@echo "==============================================================================="
 	uv run adk web . --port 8501 --reload_agents
+
+# Alternative: CLI mode (no browser needed)
+playground-cli:
+	@echo "==============================================================================="
+	@echo "| 🚀 Starting agent in CLI mode...                                            |"
+	@echo "| Type your questions and press Enter. Type 'exit' to quit.                  |"
+	@echo "==============================================================================="
+	uv run adk run app
 
 # ==============================================================================
 # Backend Deployment Targets
