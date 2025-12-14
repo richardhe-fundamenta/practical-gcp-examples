@@ -48,7 +48,7 @@ uv run uvicorn app.main:app --reload --port 8080
 
 ## Project Structure
 
-```
+```md
 bigquery-mcp-studio/
 ├── app/
 │   ├── main.py              # FastAPI application
