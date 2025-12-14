@@ -1,4 +1,4 @@
-"""API routes for BigQuery MCP Studio."""
+"""API routes for BigQuery Data Insight Builder."""
 
 import logging
 from typing import Any, Optional

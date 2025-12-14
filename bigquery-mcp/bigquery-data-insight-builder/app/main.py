@@ -1,4 +1,4 @@
-"""Main FastAPI application for BigQuery MCP Studio."""
+"""Main FastAPI application for BigQuery Data Insight Builder."""
 
 import logging
 import os
@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="BigQuery MCP Studio",
+    title="BigQuery Data Insight Builder",
     description="GUI for creating and maintaining parameterized BigQuery SQL queries",
     version="0.1.0",
     lifespan=lifespan,

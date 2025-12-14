@@ -1,4 +1,4 @@
-"""Page routes for BigQuery MCP Studio."""
+"""Page routes for BigQuery Data Insight Builder."""
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse

@@ -1,10 +1,10 @@
-# BigQuery MCP Studio
+# BigQuery Data Insight Builder
 
 A GUI application for creating, testing, and maintaining high-quality parameterized SQL queries that can be executed via the BigQuery MCP remote service.
 
 ## Purpose
 
-BigQuery MCP Studio provides a curated library of production-ready SQL queries with:
+BigQuery Data Insight Builder provides a curated library of production-ready SQL queries with:
 - **Quality Control**: Test and validate queries before saving
 - **Organization**: Group queries by category (finance, product, admin, etc.)
 - **MCP Integration**: Use BigQuery MCP for query generation and execution
@@ -42,14 +42,14 @@ gcloud datastore indexes create index.yaml --project=$PROJECT_ID
 gcloud datastore indexes list --project=$PROJECT_ID
 
 # Run locally
-uv run uvicorn app.main:app --reload --port 8080
+uv run python -m uvicorn app.main:app --reload --port 8080
 
 **Note**: The Datastore composite index creation typically takes 5-10 minutes. You can proceed with local development while it builds. The app uses client-side sorting until the index is ready.
 
 ## Project Structure
 
 ```md
-bigquery-mcp-studio/
+bigquery-data-insight-builder/
 ├── app/
 │   ├── main.py              # FastAPI application
 │   ├── models.py            # Datastore models

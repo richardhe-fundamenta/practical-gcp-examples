@@ -1,5 +1,5 @@
 [project]
-name = "bigquery-mcp-studio"
+name = "bigquery-data-insight-builder"
 version = "0.1.0"
 description = "GUI for creating and maintaining parameterized BigQuery SQL queries for MCP"
 requires-python = ">=3.11"

@@ -2,7 +2,7 @@
 # This file documents the service configuration
 # Actual deployment uses gcloud commands in Makefile
 
-service: bigquery-mcp-studio
+service: bigquery-data-insight-builder
 
 runtime: python311
 

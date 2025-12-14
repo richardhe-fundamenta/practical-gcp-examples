@@ -1,7 +1,7 @@
 #!/bin/bash
-# Run BigQuery MCP Studio with verbose debugging
+# Run BigQuery Data Insight Builder with verbose debugging
 
-echo "Starting BigQuery MCP Studio in DEBUG mode..."
+echo "Starting BigQuery Data Insight Builder in DEBUG mode..."
 echo "========================================="
 echo ""
 
@@ -9,7 +9,7 @@ echo ""
 export PYTHONUNBUFFERED=1
 
 # Run with uvicorn in reload mode with access logs
-uv run uvicorn app.main:app \
+uv run python -m uvicorn app.main:app \
     --reload \
     --port 8080 \
     --log-level debug \

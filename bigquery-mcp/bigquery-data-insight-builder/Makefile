@@ -3,7 +3,7 @@
 # Project configuration
 PROJECT_ID ?= $(shell gcloud config get-value project)
 REGION ?= us-central1
-SERVICE_NAME = bigquery-mcp-studio
+SERVICE_NAME = bigquery-data-insight-builder
 
 install:
 	@echo "Installing dependencies..."
@@ -11,7 +11,7 @@ install:
 
 dev:
 	@echo "Starting development server..."
-	uv run uvicorn app.main:app --reload --port 8080
+	uv run python -m uvicorn app.main:app --reload --port 8080
 
 deploy-authenticated:
 	@echo "Deploying to Cloud Run with authentication..."

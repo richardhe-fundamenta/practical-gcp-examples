@@ -1,4 +1,4 @@
-"""Cloud Datastore models for BigQuery MCP Studio."""
+"""Cloud Datastore models for BigQuery Data Insight Builder."""
 
 from datetime import datetime
 from typing import Any, Optional

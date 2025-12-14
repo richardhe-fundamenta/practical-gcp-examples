@@ -74,7 +74,7 @@ production_toolset = production_tools.get_tools(datastore_service)
 
 # Create agent with all tools
 root_agent = Agent(
-    name="bigquery_agent",
+    name="bigquery_analytics_agent",
     model="gemini-3-pro-preview",
     instruction=unified_instruction,
     tools=[bigquery_toolset] + production_toolset
