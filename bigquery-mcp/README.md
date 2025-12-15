@@ -73,6 +73,7 @@ Grant the following roles to the appropriate users or service accounts:
 - **MCP Tool User** (`roles/mcp.toolUser`) - Make MCP tool calls
 - **BigQuery Job User** (`roles/bigquery.jobUser`) - Run BigQuery jobs
 - **BigQuery Data Viewer** (`roles/bigquery.dataViewer`) - Query BigQuery data
+- **Cloud Datastore Viewer** (`roles/datastore.viewer`) - Read data from Cloud Datastore
 
 ### 4. User Project Header
 
