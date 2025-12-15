@@ -2,10 +2,17 @@
 
 Two complementary applications demonstrating BigQuery analytics workflows using MCP (Model Context Protocol).
 
+## The Problem
+
+When users interact with BigQuery using natural language queries, they often face challenges with query reliability and accuracy:
+
+![Issues with Natural Language Queries](./issues_with_nl.png)
+
 ## Architecture
 
-![Architecture Diagram](./architecture-diagram.png)
-*Upload your architecture diagram to visualize how these components work together*
+This solution addresses these challenges through a structured approach:
+
+![Architecture Diagram](./bq_mcp_architecture.png)
 
 ## Components
 
@@ -17,7 +24,7 @@ Dual-mode analytics agent built with Google's ADK. Supports both ad-hoc query ge
 
 ## Setup
 
-> init
+Env Vars
 ```
 export REGION='us-central1'
 export PROJECT_ID='rocketech-de-pgcp-sandbox'
