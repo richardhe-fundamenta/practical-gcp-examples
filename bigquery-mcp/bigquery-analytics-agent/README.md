@@ -89,6 +89,8 @@ Agent: [Generates SQL, executes, returns results]
 ### Production Mode
 Access a library of curated reports organized by business topic. Each report is a pre-approved, parameterized query template managed via BigQuery MCP Studio.
 
+**Prerequisites:** Production mode requires the `ai-agents-db` Cloud Datastore database. See the [main README](../README.md#setup) for setup instructions.
+
 **Workflow:**
 1. Browse reports by topic: `"list categories"` or `"show available reports"`
 2. Understand a report: `"tell me about [report name or ID]"` - get natural language explanation

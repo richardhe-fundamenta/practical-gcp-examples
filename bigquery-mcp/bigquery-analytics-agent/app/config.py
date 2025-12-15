@@ -20,5 +20,8 @@ import os
 GOOGLE_CLOUD_LOCATION = "us-central1"
 GEMINI_MODEL = "gemini-2.5-pro"
 
+# Datastore Configuration
+DATASTORE_DATABASE = "ai-agents-db"
+
 # Set environment variables
 os.environ["GOOGLE_CLOUD_LOCATION"] = GOOGLE_CLOUD_LOCATION

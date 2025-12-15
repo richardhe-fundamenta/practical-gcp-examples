@@ -17,14 +17,35 @@ Dual-mode analytics agent built with Google's ADK. Supports both ad-hoc query ge
 
 ## Setup
 
+> init
+```
+export REGION='us-central1'
+export PROJECT_ID='rocketech-de-pgcp-sandbox'
+```
+
 ### 1. Enable MCP on the Project
 
 ```bash
 gcloud beta services mcp enable bigquery.googleapis.com \
-    --project=rocketech-de-pgcp-sandbox
+    --project=${PROJECT_ID}
 ```
 
-### 2. Grant Permissions
+### 2. Create Cloud Datastore Database
+
+Create a named Datastore database for storing query templates and categories:
+
+```bash
+# Create the "ai-agents" database
+
+gcloud firestore databases create --database=ai-agents-db \
+    --location=${REGION} \
+    --type=datastore-mode \
+    --project=${PROJECT_ID}
+```
+
+Visit the [Datastore console](https://console.cloud.google.com/datastore/setup) if you prefer to create it via the UI.
+
+### 3. Grant Permissions
 
 Grant the following roles to the appropriate users or service accounts:
 
@@ -33,7 +54,7 @@ Grant the following roles to the appropriate users or service accounts:
 - **BigQuery Job User** (`roles/bigquery.jobUser`) - Run BigQuery jobs
 - **BigQuery Data Viewer** (`roles/bigquery.dataViewer`) - Query BigQuery data
 
-### 3. User Project Header
+### 4. User Project Header
 
 The Google user project header is required, especially when running locally:
 

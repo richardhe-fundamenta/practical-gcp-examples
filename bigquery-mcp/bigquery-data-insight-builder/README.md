@@ -31,15 +31,22 @@ BigQuery Data Insight Builder provides a curated library of production-ready SQL
 ```bash
 # Set your GCP project ID
 export PROJECT_ID="your-project-id"
+export REGION='us-central1'
 
 # Install dependencies
 uv sync
 
+# Create the Datastore database (if not already created)
+gcloud firestore databases create --database=ai-agents-db \
+    --location=${REGION} \
+    --type=datastore-mode \
+    --project=$PROJECT_ID
+
 # Create required Cloud Datastore indexes
-gcloud datastore indexes create index.yaml --project=$PROJECT_ID
+gcloud datastore indexes create index.yaml --project=$PROJECT_ID --database=ai-agents
 
 # Wait for indexes to be created (check status)
-gcloud datastore indexes list --project=$PROJECT_ID
+gcloud datastore indexes list --project=$PROJECT_ID --database=ai-agents
 
 # Run locally
 uv run python -m uvicorn app.main:app --reload --port 8080

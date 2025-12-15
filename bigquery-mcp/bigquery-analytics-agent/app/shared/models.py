@@ -11,6 +11,8 @@ from typing import Optional
 from google.cloud import datastore
 from pydantic import BaseModel, Field
 
+from app.config import DATASTORE_DATABASE
+
 
 class ParameterDefinition(BaseModel):
     """Definition of a SQL query parameter."""
@@ -71,7 +73,7 @@ class DatastoreClient:
         Args:
             project_id: GCP project ID (uses default if not provided)
         """
-        self.client = datastore.Client(project=project_id)
+        self.client = datastore.Client(project=project_id, database=DATASTORE_DATABASE)
 
     # ===== QueryTemplate Operations (READ-ONLY) =====
 
