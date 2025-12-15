@@ -19,6 +19,19 @@ This solution addresses these challenges through a structured approach:
 ### [bigquery-data-insight-builder](./bigquery-data-insight-builder)
 GUI application for creating, testing, and maintaining a curated library of parameterized SQL queries. Data analysts use this to build and validate production-ready queries with MCP assistance.
 
+#### Overview
+![Data Insight Builder Overview](./DIB-overview.png)
+
+#### Category Management
+![Finance Category Example](./DIB-finance.png)
+
+#### Query Editing
+![Query Editor](./DIB-edit.png)
+![Query Editor - Advanced](./DIB-edit-2.png)
+
+#### Testing & Validation
+![Dry Run Testing](./DIB-testing-dryrun.png)
+
 ### [bigquery-analytics-agent](./bigquery-analytics-agent)
 Dual-mode analytics agent built with Google's ADK. Supports both ad-hoc query generation (Explore mode) and access to curated reports from the insight builder (Production mode).
 
