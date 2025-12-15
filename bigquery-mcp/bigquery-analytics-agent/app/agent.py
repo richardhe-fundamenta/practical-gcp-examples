@@ -13,10 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import os
-import google.auth
 import logging
+from dotenv import load_dotenv
 
 from google.adk.agents import Agent
 from google.adk.apps.app import App
@@ -27,8 +26,14 @@ from .services.datastore_service import DatastoreService
 
 logger = logging.getLogger(__name__)
 
+# Load environment variables from .env file
+load_dotenv()
+
 # Initialize project and environment
-project_id = 'rocketech-de-pgcp-sandbox' # hard code to work around any Agent Engine related issues. 
+project_id = os.environ.get("PROJECT_ID")
+if not project_id:
+    raise ValueError("PROJECT_ID environment variable is not set. Please check your .env file.")
+
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
