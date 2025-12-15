@@ -28,7 +28,7 @@ from .services.datastore_service import DatastoreService
 logger = logging.getLogger(__name__)
 
 # Initialize project and environment
-_, project_id = google.auth.default()
+project_id = 'rocketech-de-pgcp-sandbox' # hard code to work around any Agent Engine related issues. 
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
