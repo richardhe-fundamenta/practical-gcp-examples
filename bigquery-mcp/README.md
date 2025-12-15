@@ -1,6 +1,6 @@
-# BigQuery MCP Examples
+# Hybrid Analytics Powered by BigQuery MCP
 
-Two complementary applications demonstrating BigQuery analytics workflows using MCP (Model Context Protocol).
+Two complementary applications demonstrating BigQuery analytics workflows using MCP (Model Context Protocol). 
 
 ## The Problem
 
@@ -24,6 +24,9 @@ GUI application for creating, testing, and maintaining a curated library of para
 
 #### Category Management
 ![Finance Category Example](./DIB-finance.png)
+
+#### Query Creation
+![Query Creation](./DIB-create.png)
 
 #### Query Editing
 ![Query Editor](./DIB-edit.png)
