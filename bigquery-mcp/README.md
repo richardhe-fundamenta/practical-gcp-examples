@@ -4,15 +4,10 @@ Two complementary applications demonstrating BigQuery analytics workflows using 
 
 ## The Problem
 
-When users interact with BigQuery using natural language queries, they often face challenges with query reliability and accuracy:
+When users interact with BigQuery using natural language queries, they often face challenges with query reliability and accuracy. 
+This approach aims to get the best of both worlds without compromising quality nor convenience
 
-![Issues with Natural Language Queries](./issues_with_nl.png)
-
-## Architecture
-
-This solution addresses these challenges through a structured approach:
-
-![Architecture Diagram](./bq_mcp_architecture.png)
+![Solution](./Hybrid_Analytics_With_Remote_BigQuery_MCP.png)
 
 ## Components
 
