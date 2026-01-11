@@ -1,0 +1,199 @@
+{
+    "caller": "//bigquery.googleapis.com/projects/my-project/jobs/1234",
+    "sessionUser": "test-user@google.com",
+    "calls": [
+        [
+            {
+                "customer_id": "C001_Complex_Security",
+                "name": "Alice Danger",
+                "security_profile": {
+                    "last_login_ip": "45.22.19.11 (Lagos, NG)",
+                    "home_ip": "98.11.22.33 (Chicago, US)",
+                    "device_fingerprint": "unknown_android_device_v9",
+                    "2fa_status": "disabled",
+                    "failed_login_attempts_last_24h": 5
+                },
+                "billing_summary": {
+                    "last_payment_status": "success",
+                    "card_expiry": "12/2028"
+                },
+                "usage_stats": {
+                    "login_frequency": "daily",
+                    "feature_usage_score": 95
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C002_Complex_Billing",
+                "name": "Bob Churn",
+                "security_profile": {
+                    "2fa_status": "enabled",
+                    "last_login_ip": "1.2.3.4"
+                },
+                "billing_summary": {
+                    "current_balance": -45.00,
+                    "last_payment_Attempt": "2024-10-01",
+                    "last_payment_status": "declined_insufficient_funds",
+                    "subscription_status": "grace_period",
+                    "days_until_termination": 3
+                },
+                "usage_stats": {
+                    "login_frequency": "weekly"
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C003_Retention_Opportunity",
+                "name": "Charlie Renewal",
+                "billing_summary": {
+                    "subscription_tier": "enterprise",
+                    "annual_spend": 12000
+                },
+                "usage_stats": {
+                    "last_active_date": "2024-09-15",
+                    "core_features_used": [
+                        "basic_reporting"
+                    ],
+                    "available_features": [
+                        "advanced_analytics",
+                        "ai_forecasting",
+                        "team_collaboration"
+                    ],
+                    "utilization_rate": "15%",
+                    "support_tickets": []
+                },
+                "loyalty_program": {
+                    "points_balance": 45000,
+                    "points_expiring_soon": 15000,
+                    "expiry_date": "2024-11-01"
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C004_Multi_Risk_Critical",
+                "name": "Diana Secure",
+                "security_profile": {
+                    "last_password_change_date": "2018-05-20",
+                    "password_strength_score": "weak",
+                    "breach_check_status": "found_in_darkweb_dump"
+                },
+                "billing_summary": {
+                    "card_last_4": "4242",
+                    "card_expiry": "10/2024",
+                    "current_date": "2024-11-01",
+                    "notes": "Card is expired"
+                },
+                "usage_stats": {
+                    "login_frequency": "daily"
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C005_Subtle_Retention",
+                "name": "Evan Points",
+                "billing_summary": {
+                    "last_payment": "success"
+                },
+                "usage_stats": {
+                    "login_trend": "declining",
+                    "avg_session_time_prev_month": "45m",
+                    "avg_session_time_current_month": "5m",
+                    "nps_score": 6,
+                    "feedback_notes": "Tool is feeling a bit slow lately"
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C006_False_Alarm_Normal",
+                "name": "Frank Complex",
+                "security_profile": {
+                    "last_login_ip": "10.0.0.1 (VPN)",
+                    "known_vpn_provider": true
+                },
+                "billing_summary": {
+                    "last_payment_status": "success"
+                },
+                "usage_stats": {
+                    "utilization_rate": "85%"
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C007_Policy_Violation_Security",
+                "name": "Grace Good",
+                "security_profile": {
+                    "shared_account_detection": true,
+                    "concurrent_logins": 5,
+                    "locations": [
+                        "US",
+                        "IN",
+                        "UK",
+                        "CN",
+                        "AU"
+                    ],
+                    "time_window": "5 minutes"
+                },
+                "billing_summary": {
+                    "account_type": "individual_license"
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C008_Billing_Retry",
+                "name": "Hank Hack",
+                "billing_summary": {
+                    "payment_history": [
+                        {
+                            "date": "2024-10-01",
+                            "status": "failed_gateway_timeout"
+                        },
+                        {
+                            "date": "2024-10-02",
+                            "status": "failed_gateway_timeout"
+                        }
+                    ],
+                    "notes": "System error on provider side, not user fault"
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C009_Engagement_Winback",
+                "name": "Ivy Mixed",
+                "usage_stats": {
+                    "account_age_days": 365,
+                    "features_activated": 0,
+                    "login_count_total": 2
+                },
+                "billing_summary": {
+                    "is_paying": true,
+                    "plan": "premium"
+                }
+            }
+        ],
+        [
+            {
+                "customer_id": "C010_All_Systems_Go",
+                "name": "Jack Legacy",
+                "security_profile": {
+                    "2fa": "enabled",
+                    "risk_score": 0
+                },
+                "billing_summary": {
+                    "status": "paid",
+                    "auto_renew": true
+                },
+                "usage_stats": {
+                    "trend": "stable_high"
+                }
+            }
+        ]
+    ]
+}
