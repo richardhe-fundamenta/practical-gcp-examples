@@ -1,4 +1,4 @@
-# BigQuery Remote Function Agent (ADK)
+# ADK Multi Agent Orchestration via BigQuery Remote Functions
 
 ![Architecture Diagram](./bq-batch-remote-fun-adk.png)
 
