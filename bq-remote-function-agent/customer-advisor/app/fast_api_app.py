@@ -56,8 +56,12 @@ app = get_fast_api_app(
 # --- Concurrency Control ---
 # Limits how many rows across all requests are processed simultaneously
 # to stay within Vertex AI RPM limits and JVM/resource bounds.
-MAX_CONCURRENT_ROWS = 20 
+MAX_CONCURRENT_ROWS = 50 
 global_semaphore = asyncio.Semaphore(MAX_CONCURRENT_ROWS)
+
+class TransientError(Exception):
+    """Exception for errors that should trigger a BigQuery retry (e.g., 429 Quota)."""
+    pass
 
 @app.post("/")
 async def process_bq_batch(request: BQRequest) -> BQResponse:
@@ -128,29 +132,50 @@ async def process_bq_batch(request: BQRequest) -> BQResponse:
                 if hasattr(e, "exceptions") and e.exceptions:
                     err_msg = f"{err_type} sub-error: {str(e.exceptions[0])}"
                 
-                # Suppress the specific OpenTelemetry detached context warning from logs 
+                # If it's a Quota/Rate Limit error, raise TransientError to trigger a batch retry
+                if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+                    raise TransientError(err_msg)
+                
+                # Suppress OTel noise but log real logic errors
                 if "different Context" not in err_msg:
-                    logger.error(f"Error processing row: {err_msg}")
+                    logger.error(f"Permanent error processing row: {err_msg}")
                 
                 return json.dumps({"error": err_msg})
 
-    # High-Performance Batch Processing: 
-    # Instead of gathering 10,000 tasks at once, we process in manageable chunks
-    # to prevent memory pressure and OpenTelemetry context collisions.
-    CHUNK_SIZE = 20
+    # High-Performance Batch Processing with Chunking
+    CHUNK_SIZE = 50
     replies = []
     
+    from fastapi import HTTPException
+
     for i in range(0, len(request.calls), CHUNK_SIZE):
         batch_chunk = request.calls[i : i + CHUNK_SIZE]
         tasks = [process_row(row) for row in batch_chunk]
-        chunk_results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Format results (handling any raw exceptions that escaped)
-        for res in chunk_results:
-            if isinstance(res, Exception):
-                replies.append(json.dumps({"error": f"Internal Task Error: {str(res)}"}))
-            else:
-                replies.append(res)
+        # We process the chunk. If any row raises an unhandled error (like TransientError),
+        # the whole chunk_results assignment will fail and propagate the error.
+        try:
+            chunk_results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for res in chunk_results:
+                if isinstance(res, TransientError):
+                    # If we found a transient quota error in the batch, 
+                    # tell BQ to retry the whole thing.
+                    logger.warning(f"Quota exceeded (429). Triggering BQ retry: {res}")
+                    raise HTTPException(status_code=500, detail="Quota Exceeded (429). Retryable.")
+                
+                if isinstance(res, Exception):
+                    # For other unexpected exceptions, log and return error in JSON
+                    replies.append(json.dumps({"error": f"Internal Task Error: {str(res)}"}))
+                else:
+                    replies.append(res)
+        except HTTPException:
+            # Re-raise FastAPIs HTTP exceptions so they reach the client (BQ)
+            raise
+        except Exception as e:
+            # Catch-all for any other errors in the chunking logic
+            logger.error(f"Critical batch error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Batch Processing Error")
 
     return BQResponse(replies=replies)
 
