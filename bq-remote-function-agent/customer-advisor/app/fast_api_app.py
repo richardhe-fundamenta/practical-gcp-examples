@@ -56,7 +56,7 @@ app = get_fast_api_app(
 # --- Concurrency Control ---
 # Limits how many rows across all requests are processed simultaneously
 # to stay within Vertex AI RPM limits and JVM/resource bounds.
-MAX_CONCURRENT_ROWS = 50 
+MAX_CONCURRENT_ROWS = 10 
 global_semaphore = asyncio.Semaphore(MAX_CONCURRENT_ROWS)
 
 class TransientError(Exception):
@@ -143,7 +143,7 @@ async def process_bq_batch(request: BQRequest) -> BQResponse:
                 return json.dumps({"error": err_msg})
 
     # High-Performance Batch Processing with Chunking
-    CHUNK_SIZE = 50
+    CHUNK_SIZE = 10
     replies = []
     
     from fastapi import HTTPException
