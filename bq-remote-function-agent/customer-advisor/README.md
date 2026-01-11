@@ -1,5 +1,7 @@
 # BigQuery Remote Function Agent (ADK)
 
+![Architecture Diagram](../bq-batch-remote-fun-adk.png)
+
 A scalable multi-agent system (Customer Advisor) built with Google's Agent Development Kit (ADK) designed to run as a BigQuery Remote Function (Cloud Run). It orchestrates specialized agents (Security, Billing, Retention) to analyze customer data in parallel.
 
 ## Project Structure
