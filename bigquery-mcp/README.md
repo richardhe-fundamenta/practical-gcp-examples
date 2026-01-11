@@ -30,6 +30,9 @@ GUI application for creating, testing, and maintaining a curated library of para
 #### Testing & Validation
 ![Dry Run Testing](./DIB-testing-dryrun.png)
 
+#### What a Datastore Entity looks like
+![Datastore Entity](./DATASTORE-entity.png)
+
 ### [bigquery-analytics-agent](./bigquery-analytics-agent)
 Dual-mode analytics agent built with Google's ADK. Supports both ad-hoc query generation (Explore mode) and access to curated reports from the insight builder (Production mode).
 
