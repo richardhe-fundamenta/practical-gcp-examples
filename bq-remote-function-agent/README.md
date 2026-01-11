@@ -34,7 +34,6 @@ We have included a comprehensive integration test that verifies the full end-to-
 
 **Run the automated test:**
 ```bash
-cd customer-advisor
 uv run pytest tests/integration/test_bq_process.py
 ```
 
@@ -49,12 +48,11 @@ If you want to run the server and test it manually:
 
 1. **Start the local server:**
 ```bash
-cd customer-advisor
 uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8011
 ```
 
 2. **Send test payload:**
-In another terminal (from the `customer-advisor` directory), run:
+In another terminal, run:
 ```bash
 curl -X POST http://localhost:8011/ \
   -H "Content-Type: application/json" \
@@ -66,7 +64,6 @@ curl -X POST http://localhost:8011/ \
 You can deploy your agent to a Dev Environment using the following command:
 
 ```bash
-cd customer-advisor
 gcloud config set project <your-dev-project-id>
 make deploy
 ```
@@ -107,5 +104,17 @@ FROM
   `rocketech-de-pgcp-sandbox.bigquery_remotefunction_examples.customer_scenarios` AS t;
 ```
 
+## Trade-offs: ADK vs. Native Implementation
 
+When choosing between using the **Agent Development Kit (ADK)** and building a native LLM integration, consider the following architectural trade-offs:
 
+### 🚀 Pros of using ADK
+
+1.  **Write Once, Use Anywhere**: Your agent logic is decoupled from the execution environment. You can call the same ADK agent from **Gemini Enterprise**, **BigQuery Remote Functions** (this solution), or an **Event-Driven architecture**. This significantly cuts down development time and flattens the learning curve.
+2.  **Sophisticated Agent Design**: ADK provides a robust framework for complex behaviors, including **Multi-Agent orchestration (Sub-agents)**, **Tool calls (Function Calling)**, and built-in **Tracing/Monitoring**. This allows you to test and evaluate the agent independently from the "plumbing" of the hosting application.
+3.  **Speed to Production**: Leveraging the **Agent Starter Pack** provides pre-configured boilerplates for **Vertex AI Agent Engine** or **Cloud Run**, dramatically speeding up the path from prototype to deployed service.
+
+### ⚖️ Potential Challenges
+
+1.  **Session Management Overhead**: ADK is inherently session-based. For stateless batch processing like BigQuery Remote Functions, managing these sessions can feel like unnecessary "state" (though we’ve optimized this with `InMemorySessionService` to prevent leaks).
+2.  **Batching Complexity**: BigQuery thrives on batching, but ADK’s modular nature (especially when sub-agents use different models) makes standard batch inference more challenging. There are cost implications to consider if your workload requires extremely high-volume batch processing where raw Vertex AI Batch API might be more efficient.
