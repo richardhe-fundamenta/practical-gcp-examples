@@ -35,7 +35,7 @@ local-backend:
 # ==============================================================================
 
 # Deploy the agent remotely
-# Usage: make deploy [IAP=true] [PORT=8080] - Set IAP=true to enable Identity-Aware Proxy, PORT to specify container port
+# Usage: make deploy [IAP=true] [PORT=8080] [CONCURRENCY=50] - Set IAP=true to enable Identity-Aware Proxy, PORT to specify container port
 deploy:
 	PROJECT_ID=$$(gcloud config get-value project) && \
 	gcloud beta run deploy customer-advisor \
@@ -45,6 +45,7 @@ deploy:
 		--region "us-central1" \
 		--no-allow-unauthenticated \
 		--no-cpu-throttling \
+		--concurrency 50 \
 		--labels "created-by=adk" \
 		--update-build-env-vars "AGENT_VERSION=$(shell awk -F'"' '/^version = / {print $$2}' pyproject.toml || echo '0.0.0')" \
 		--update-env-vars \

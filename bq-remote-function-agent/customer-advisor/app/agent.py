@@ -34,7 +34,7 @@ os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
 security_agent = LlmAgent(
     name="SecurityGuardian",
-    model=Gemini(model="gemini-2.0-flash"),
+    model=Gemini(model="gemini-2.5-flash"),
     description="Handles critical security alerts.",
     instruction="""
     You are the 'SecurityGuardian'.
@@ -51,7 +51,7 @@ security_agent = LlmAgent(
 
 billing_agent = LlmAgent(
     name="BillingAdvisor",
-    model=Gemini(model="gemini-2.0-flash"),
+    model=Gemini(model="gemini-2.5-flash"),
     description="Handles payment and subscription issues.",
     instruction="""
     You are the 'BillingAdvisor'.
@@ -68,7 +68,7 @@ billing_agent = LlmAgent(
 
 retention_agent = LlmAgent(
     name="RetentionSpecialist",
-    model=Gemini(model="gemini-2.0-flash"),
+    model=Gemini(model="gemini-2.5-flash"),
     description="Handles engagement and rewards.",
     instruction="""
     You are the 'RetentionSpecialist'.
