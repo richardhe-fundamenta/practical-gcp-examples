@@ -88,8 +88,12 @@ retention_agent = LlmAgent(
 # 2. Define Root Agent (Parallel Orchestrator)
 # ==========================================
 
-root_agent = ParallelAgent(
-    name="parallel_customer_scanner",
+class CustomerScanner(ParallelAgent):
+    """Custom wrapper to identify the agent as part of the local app module."""
+    pass
+
+root_agent = CustomerScanner(
+    name="customer_advisor",
     description="Scans customer data across Security, Billing, and Retention tracks simultaneously.",
     sub_agents=[security_agent, billing_agent, retention_agent],
 )
