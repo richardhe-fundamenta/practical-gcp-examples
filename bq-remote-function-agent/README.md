@@ -1,6 +1,6 @@
 # BigQuery Remote Function Agent (ADK)
 
-![Architecture Diagram](../bq-batch-remote-fun-adk.png)
+![Architecture Diagram](./bq-batch-remote-fun-adk.png)
 
 A scalable multi-agent system (Customer Advisor) built with Google's Agent Development Kit (ADK) designed to run as a BigQuery Remote Function (Cloud Run). It orchestrates specialized agents (Security, Billing, Retention) to analyze customer data in parallel.
 
@@ -34,6 +34,7 @@ We have included a comprehensive integration test that verifies the full end-to-
 
 **Run the automated test:**
 ```bash
+cd customer-advisor
 uv run pytest tests/integration/test_bq_process.py
 ```
 
@@ -48,11 +49,12 @@ If you want to run the server and test it manually:
 
 1. **Start the local server:**
 ```bash
+cd customer-advisor
 uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8011
 ```
 
 2. **Send test payload:**
-In another terminal, run:
+In another terminal (from the `customer-advisor` directory), run:
 ```bash
 curl -X POST http://localhost:8011/ \
   -H "Content-Type: application/json" \
@@ -64,6 +66,7 @@ curl -X POST http://localhost:8011/ \
 You can deploy your agent to a Dev Environment using the following command:
 
 ```bash
+cd customer-advisor
 gcloud config set project <your-dev-project-id>
 make deploy
 ```
