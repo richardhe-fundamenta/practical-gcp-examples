@@ -11,25 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import uuid
+from typing import (
+    Literal,
+)
 
-FROM python:3.11-slim
+from pydantic import (
+    BaseModel,
+    Field,
+)
 
-RUN pip install --no-cache-dir uv==0.8.13
 
-WORKDIR /code
+class Feedback(BaseModel):
+    """Represents feedback for a conversation."""
 
-COPY ./pyproject.toml ./README.md ./uv.lock* ./
-
-COPY ./app ./app
-
-RUN uv sync --frozen
-
-ARG COMMIT_SHA=""
-ENV COMMIT_SHA=${COMMIT_SHA}
-
-ARG AGENT_VERSION=0.0.0
-ENV AGENT_VERSION=${AGENT_VERSION}
-
-EXPOSE 8080
-
-CMD ["uv", "run", "uvicorn", "app.fast_api_app:app", "--host", "0.0.0.0", "--port", "8080"]
+    score: int | float
+    text: str | None = ""
+    log_type: Literal["feedback"] = "feedback"
+    service_name: Literal["adk-ae-oauth"] = "adk-ae-oauth"
+    user_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))

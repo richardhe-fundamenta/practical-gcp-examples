@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest.mock import patch
+
 from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
@@ -20,10 +22,12 @@ from google.genai import types
 from app.agent import root_agent
 
 
-def test_agent_stream() -> None:
+def test_agent_stream_no_auth() -> None:
     """
-    Integration test for the agent stream functionality.
-    Tests that the agent returns valid streaming responses.
+    Integration test: verifies the agent streams a response when asked
+    to read a Drive file but no OAuth token is available.
+    We mock negotiate_creds to return a pending dict so the agent
+    responds with an authentication message rather than crashing.
     """
 
     session_service = InMemorySessionService()
@@ -32,18 +36,26 @@ def test_agent_stream() -> None:
     runner = Runner(agent=root_agent, session_service=session_service, app_name="test")
 
     message = types.Content(
-        role="user", parts=[types.Part.from_text(text="Why is the sky blue?")]
+        role="user",
+        parts=[types.Part.from_text(text="Read the file with ID abc123")],
     )
 
-    events = list(
-        runner.run(
-            new_message=message,
-            user_id="test_user",
-            session_id=session.id,
-            run_config=RunConfig(streaming_mode=StreamingMode.SSE),
+    # Mock negotiate_creds to simulate "no OAuth token available"
+    # so the test doesn't need real OAuth credentials
+    with patch(
+        "app.tools.negotiate_creds",
+        return_value={"pending": True, "message": "Awaiting user authentication"},
+    ):
+        events = list(
+            runner.run(
+                new_message=message,
+                user_id="test_user",
+                session_id=session.id,
+                run_config=RunConfig(streaming_mode=StreamingMode.SSE),
+            )
         )
-    )
-    assert len(events) > 0, "Expected at least one message"
+
+    assert len(events) > 0, "Expected at least one event"
 
     has_text_content = False
     for event in events:
@@ -54,4 +66,4 @@ def test_agent_stream() -> None:
         ):
             has_text_content = True
             break
-    assert has_text_content, "Expected at least one message with text content"
+    assert has_text_content, "Expected at least one event with text content"

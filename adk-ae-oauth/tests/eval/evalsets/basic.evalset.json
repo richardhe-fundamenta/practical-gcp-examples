@@ -1,7 +1,7 @@
 {
   "eval_set_id": "basic_eval",
   "name": "Basic Agent Evaluation",
-  "description": "Sample evaluation set for testing core agent functionality. Customize these cases based on your DESIGN_SPEC.md.",
+  "description": "Evaluation set for the Google Drive reader agent. Tests greeting and Drive read request handling.",
   "eval_cases": [
     {
       "eval_id": "greeting",
@@ -19,11 +19,11 @@
       }
     },
     {
-      "eval_id": "capability_query",
+      "eval_id": "drive_read_request",
       "conversation": [
         {
           "user_content": {
-            "parts": [{"text": "What tools do you have available?"}]
+            "parts": [{"text": "Can you read my Google Drive file with ID abc123?"}]
           }
         }
       ],

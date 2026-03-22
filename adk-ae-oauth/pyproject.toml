@@ -1,21 +1,19 @@
 [project]
-name = "adk-a2a-oauth"
+name = "adk-ae-oauth"
 version = "0.1.0"
 description = ""
 authors = [
     {name = "Your Name", email = "your@email.com"},
 ]
 dependencies = [
-    "google-adk>=1.16.0,<2.0.0",
-    "a2a-sdk~=0.3.22",
-    "nest-asyncio>=1.6.0,<2.0.0",
+    "google-adk>=1.15.0,<2.0.0",
     "opentelemetry-instrumentation-google-genai>=0.1.0,<1.0.0",
     "gcsfs>=2024.11.0",
     "google-cloud-logging>=3.12.0,<4.0.0",
-    "google-cloud-aiplatform[evaluation]>=1.130.0",
-    "fastapi>=0.115.8,<1.0.0",
-    "uvicorn~=0.34.0",
-    "asyncpg>=0.30.0,<1.0.0",
+    "google-cloud-aiplatform[evaluation,agent-engines]>=1.130.0",
+    "protobuf>=6.31.1,<7.0.0",
+    "google-api-python-client>=2.190.0",
+    "google-auth-httplib2>=0.3.0",
 ]
 requires-python = ">=3.10,<3.14"
 
@@ -101,19 +99,19 @@ packages = ["app","frontend"]
 [tool.agent-starter-pack]
 # Generation metadata - enables CLI commands to understand project context
 # These fields allow any generated project to work as a remote template
-name = "adk-a2a-oauth"
-description = "ReAct agent with A2A protocol [experimental]"
-base_template = "adk_a2a"
+name = "adk-ae-oauth"
+description = "Simple ReAct agent"
+base_template = "adk"
 agent_directory = "app"
 
 # Generation context
-generated_at = "2026-03-22T17:20:56.998920+00:00"
+generated_at = "2026-03-22T22:01:03.168182+00:00"
 asp_version = "0.39.4"
 
 [tool.agent-starter-pack.create_params]
 # Parameters used during project creation
-deployment_target = "cloud_run"
-session_type = "in_memory"
+deployment_target = "agent_engine"
+session_type = "none"
 cicd_runner = "skip"
 include_data_ingestion = false
 datastore = "none"

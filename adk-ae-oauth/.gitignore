@@ -200,3 +200,6 @@ my_env.tfvars
 
 # A2A Inspector
 tools/a2a-inspector/
+
+# ADK local session data (contains OAuth tokens)
+.adk/

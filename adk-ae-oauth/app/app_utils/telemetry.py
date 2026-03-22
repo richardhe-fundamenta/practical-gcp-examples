@@ -15,14 +15,10 @@
 import logging
 import os
 
-import google.auth
-from google.adk.cli.adk_web_server import _setup_instrumentation_lib_if_installed
-from google.adk.telemetry.google_cloud import get_gcp_exporters, get_gcp_resource
-from google.adk.telemetry.setup import maybe_set_otel_providers
-
 
 def setup_telemetry() -> str | None:
     """Configure OpenTelemetry and GenAI telemetry with GCS upload."""
+    os.environ.setdefault("GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY", "true")
 
     bucket = os.environ.get("LOGS_BUCKET_NAME")
     capture_content = os.environ.get(
@@ -41,7 +37,7 @@ def setup_telemetry() -> str | None:
         commit_sha = os.environ.get("COMMIT_SHA", "dev")
         os.environ.setdefault(
             "OTEL_RESOURCE_ATTRIBUTES",
-            f"service.namespace=adk-a2a-oauth,service.version={commit_sha}",
+            f"service.namespace=adk-ae-oauth,service.version={commit_sha}",
         )
         path = os.environ.get("GENAI_TELEMETRY_PATH", "completions")
         os.environ.setdefault(
@@ -52,22 +48,5 @@ def setup_telemetry() -> str | None:
         logging.info(
             "Prompt-response logging disabled (set LOGS_BUCKET_NAME=gs://your-bucket and OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT to enable)"
         )
-
-    # Set up OpenTelemetry exporters for Cloud Trace and Cloud Logging
-    credentials, project_id = google.auth.default()
-    otel_hooks = get_gcp_exporters(
-        enable_cloud_tracing=True,
-        enable_cloud_metrics=False,
-        enable_cloud_logging=True,
-        google_auth=(credentials, project_id),
-    )
-    otel_resource = get_gcp_resource(project_id)
-    maybe_set_otel_providers(
-        otel_hooks_to_setup=[otel_hooks],
-        otel_resource=otel_resource,
-    )
-
-    # Set up GenAI SDK instrumentation
-    _setup_instrumentation_lib_if_installed()
 
     return bucket
