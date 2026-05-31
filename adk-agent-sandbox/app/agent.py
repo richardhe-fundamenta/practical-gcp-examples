@@ -25,6 +25,7 @@ from app.bigquery.mcp_schema import bq_schema_toolset
 from app.bigquery.sql_tool import run_validated_sql
 from app.sandbox.render_tool import render_chart
 from app.skills.loader import active_skill_contract
+from app.config import get_settings
 
 _, project_id = google.auth.default()
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
@@ -34,9 +35,11 @@ os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 _LOOP_INSTRUCTION = """\
 You are an expert data analyst agent. Given a user question about data, follow this loop exactly:
 
-1. DISCOVER SCHEMA: Use the BigQuery schema tools (list_dataset_ids, list_table_ids,
-   get_dataset_info, get_table_info) to discover which datasets and tables are relevant
-   to the user's question. Identify column names, types, and relationships.
+1. DISCOVER SCHEMA: Your data lives ONLY in the allowlisted dataset(s) named in the
+   DATA SOURCE block below. Use the BigQuery schema tools — list_table_ids and
+   get_table_info, scoped to the configured project and those dataset(s) — to discover
+   the tables, column names, types, and relationships. Do NOT use bigquery-public-data
+   or any dataset not in the allowlist; the harness gate will reject them.
 
 2. QUERY DATA: Draft a read-only BigQuery Standard SQL SELECT query that answers the
    question. Call run_validated_sql(sql=<your query>).
@@ -61,7 +64,21 @@ You are an expert data analyst agent. Given a user question about data, follow t
    If render_chart returns status "error", report the error briefly and suggest a fix.
 """
 
-INSTRUCTION = _LOOP_INSTRUCTION + "\n\n" + active_skill_contract()
+def _build_instruction(_readonly_context=None) -> str:
+    """Instruction provider: grounds the agent in the configured project + allowlisted
+    datasets at invocation time (settings/.env are loaded by then), then appends the
+    active skill's output contract."""
+    s = get_settings()
+    datasets = ", ".join(sorted(s.dataset_allowlist)) or "(none configured)"
+    data_source = (
+        "## DATA SOURCE\n"
+        f"BigQuery project: `{s.project}` (data region {s.bq_data_region}).\n"
+        f"Allowlisted dataset(s) you may query: {datasets}.\n"
+        f"Always fully-qualify tables as `{s.project}.<dataset>.<table>`. Queries that "
+        "touch any other dataset, or exceed the byte cap, are rejected by the harness."
+    )
+    return _LOOP_INSTRUCTION + "\n\n" + data_source + "\n\n" + active_skill_contract()
+
 
 root_agent = Agent(
     name="root_agent",
@@ -70,7 +87,7 @@ root_agent = Agent(
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     description="A data analyst agent that queries BigQuery and renders charts.",
-    instruction=INSTRUCTION,
+    instruction=_build_instruction,
     tools=[
         bq_schema_toolset(),
         run_validated_sql,
