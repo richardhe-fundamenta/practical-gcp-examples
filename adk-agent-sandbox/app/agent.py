@@ -115,7 +115,7 @@ INSTRUCTION = _LOOP_INSTRUCTION + "\n\n" + _data_source_block() + "\n\n" + activ
 root_agent = Agent(
     name="root_agent",
     model=Gemini(
-        model="gemini-flash-latest",
+        model="gemini-3.1-pro-preview",
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     description="A data analyst agent that queries BigQuery and renders charts.",
