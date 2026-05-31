@@ -26,3 +26,12 @@ def test_success_returns_rows():
         out = sql_tool.validate_and_run_sql("SELECT 1", _client=MagicMock())
         assert out["status"] == "ok"
         assert out["rows"] == [{"a": 1}]
+
+
+def test_run_validated_sql_delegates_to_validate_and_run_sql():
+    """run_validated_sql is the clean ADK-facing wrapper; it must delegate to validate_and_run_sql."""
+    expected = {"status": "ok", "rows": [{"x": 42}]}
+    with patch.object(sql_tool, "validate_and_run_sql", return_value=expected) as mock_inner:
+        out = sql_tool.run_validated_sql("SELECT 42 AS x")
+        mock_inner.assert_called_once_with("SELECT 42 AS x")
+        assert out == expected

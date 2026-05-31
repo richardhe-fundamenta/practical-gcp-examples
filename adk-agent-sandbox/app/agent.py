@@ -13,68 +13,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-from zoneinfo import ZoneInfo
+import os
 
+import google.auth
 from google.adk.agents import Agent
 from google.adk.apps import App
 from google.adk.models import Gemini
-from google.adk.tools import LongRunningFunctionTool
 from google.genai import types
 
-import os
-import google.auth
+from app.bigquery.mcp_schema import bq_schema_toolset
+from app.bigquery.sql_tool import run_validated_sql
+from app.sandbox.render_tool import render_chart
+from app.skills.loader import active_skill_contract
 
 _, project_id = google.auth.default()
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
+_LOOP_INSTRUCTION = """\
+You are an expert data analyst agent. Given a user question about data, follow this loop exactly:
 
-def get_weather(query: str) -> str:
-    """Simulates a web search. Use it get information on weather.
+1. DISCOVER SCHEMA: Use the BigQuery schema tools (list_dataset_ids, list_table_ids,
+   get_dataset_info, get_table_info) to discover which datasets and tables are relevant
+   to the user's question. Identify column names, types, and relationships.
 
-    Args:
-        query: A string containing the location to get weather information for.
+2. QUERY DATA: Draft a read-only BigQuery Standard SQL SELECT query that answers the
+   question. Call run_validated_sql(sql=<your query>).
+   - If the result has status "rejected", read the error message carefully:
+     fix the SQL (correct dataset references, add missing filters or aggregations,
+     stay within byte limits) and retry run_validated_sql — at most TWO retries.
+     If still rejected after two retries, report the error to the user and stop.
+   - If the result has status "ok", proceed with the returned rows.
 
-    Returns:
-        A string with the simulated weather information for the queried location.
-    """
-    if "sf" in query.lower() or "san francisco" in query.lower():
-        return "It's 60 degrees and foggy."
-    return "It's 90 degrees and sunny."
+3. SHAPE DATA: From the returned rows, build a JSON string with this schema:
+   {"question": "<user question>", "x": "<x-axis label>", "series": [<series names>],
+    "table": [<list of row dicts>], "prior": <optional context>}
+   Keep the table small — aggregate if needed. This is the data_json argument.
 
+4. GENERATE AND RENDER CHART: Generate Python code (matplotlib, Agg backend) that:
+   - Reads 'data.json' from the working directory.
+   - Produces a clear, well-labelled chart saved as 'output.png'.
+   Then call render_chart(code=<the Python code>, data_json=<your JSON string>).
 
-def get_current_time(query: str) -> str:
-    """Simulates getting the current time for a city.
+5. RETURN RESULT: If render_chart returns status "ok", return the PNG chart to the user.
+   If render_chart returns status "error", report the error briefly and suggest a fix.
+"""
 
-    Args:
-        city: The name of the city to get the current time for.
-
-    Returns:
-        A string with the current time information.
-    """
-    if "sf" in query.lower() or "san francisco" in query.lower():
-        tz_identifier = "America/Los_Angeles"
-    else:
-        return f"Sorry, I don't have timezone information for query: {query}."
-
-    tz = ZoneInfo(tz_identifier)
-    now = datetime.datetime.now(tz)
-    return f"The current time for query {query} is {now.strftime('%Y-%m-%d %H:%M:%S %Z%z')}"
-
-
-def request_user_input(message: str) -> dict:
-    """Request additional input from the user.
-
-    Use this tool when you need more information from the user to complete a task.
-    Calling this tool will pause execution until the user responds.
-
-    Args:
-        message: The question or clarification request to show the user.
-    """
-    return {"status": "pending", "message": message}
-
+INSTRUCTION = _LOOP_INSTRUCTION + "\n\n" + active_skill_contract()
 
 root_agent = Agent(
     name="root_agent",
@@ -82,12 +68,12 @@ root_agent = Agent(
         model="gemini-flash-latest",
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
-    description="An agent that can provide information about the weather and time.",
-    instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
+    description="A data analyst agent that queries BigQuery and renders charts.",
+    instruction=INSTRUCTION,
     tools=[
-        get_weather,
-        get_current_time,
-        LongRunningFunctionTool(func=request_user_input),
+        bq_schema_toolset(),
+        run_validated_sql,
+        render_chart,
     ],
 )
 
