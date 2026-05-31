@@ -16,6 +16,7 @@
 import os
 
 import google.auth
+from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.apps import App
 from google.adk.models import Gemini
@@ -26,6 +27,10 @@ from app.bigquery.sql_tool import run_validated_sql
 from app.sandbox.render_tool import render_chart
 from app.skills.loader import active_skill_contract
 from app.config import get_settings
+
+# Load .env for local runs so settings (e.g. BQ_DATASET_ALLOWLIST) are available at
+# import time. No-op on Cloud Run (no .env file); does not override real env vars.
+load_dotenv()
 
 _, project_id = google.auth.default()
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
@@ -64,21 +69,32 @@ You are an expert data analyst agent. Given a user question about data, follow t
    If render_chart returns status "error", report the error briefly and suggest a fix.
 """
 
-def _build_instruction(_readonly_context=None) -> str:
-    """Instruction provider: grounds the agent in the configured project + allowlisted
-    datasets at invocation time (settings/.env are loaded by then), then appends the
-    active skill's output contract."""
-    s = get_settings()
-    datasets = ", ".join(sorted(s.dataset_allowlist)) or "(none configured)"
-    data_source = (
-        "## DATA SOURCE\n"
-        f"BigQuery project: `{s.project}` (data region {s.bq_data_region}).\n"
-        f"Allowlisted dataset(s) you may query: {datasets}.\n"
-        f"Always fully-qualify tables as `{s.project}.<dataset>.<table>`. Queries that "
-        "touch any other dataset, or exceed the byte cap, are rejected by the harness."
-    )
-    return _LOOP_INSTRUCTION + "\n\n" + data_source + "\n\n" + active_skill_contract()
+def _data_source_block() -> str:
+    """Grounding block naming the configured project + allowlisted datasets.
 
+    Built at import time as a plain string (the A2A agent-card builder requires a
+    string instruction, not a callable). GOOGLE_CLOUD_PROJECT is set above; .env is
+    loaded by ADK before this module is imported, so the allowlist is available.
+    Falls back gracefully if settings can't be resolved at import."""
+    try:
+        s = get_settings()
+        datasets = ", ".join(sorted(s.dataset_allowlist)) or "(configured at deploy time)"
+        return (
+            "## DATA SOURCE\n"
+            f"BigQuery project: `{s.project}` (data region {s.bq_data_region}).\n"
+            f"Allowlisted dataset(s) you may query: {datasets}.\n"
+            f"Always fully-qualify tables as `{s.project}.<dataset>.<table>`. Queries that "
+            "touch any other dataset, or exceed the byte cap, are rejected by the harness."
+        )
+    except Exception:
+        return (
+            "## DATA SOURCE\n"
+            "Query ONLY the allowlisted BigQuery dataset(s) configured for this deployment; "
+            "fully-qualify tables as `project.dataset.table`. Other datasets are rejected."
+        )
+
+
+INSTRUCTION = _LOOP_INSTRUCTION + "\n\n" + _data_source_block() + "\n\n" + active_skill_contract()
 
 root_agent = Agent(
     name="root_agent",
@@ -87,7 +103,7 @@ root_agent = Agent(
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     description="A data analyst agent that queries BigQuery and renders charts.",
-    instruction=_build_instruction,
+    instruction=INSTRUCTION,
     tools=[
         bq_schema_toolset(),
         run_validated_sql,

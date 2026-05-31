@@ -20,6 +20,7 @@ dependencies = [
     "google-cloud-bigquery>=3.41.0",
     "vertexai>=1.43.0",
     "pyyaml>=6.0.3",
+    "python-dotenv>=1.0.1",
 ]
 requires-python = ">=3.11,<3.14"
 
