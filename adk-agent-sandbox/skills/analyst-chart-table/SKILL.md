@@ -45,20 +45,18 @@ harness. Your job is interpretation + rendering only.
 You (the model) **generate Python rendering code**; the harness runs it in an
 isolated sandbox (no network, no credentials) via the `render_chart` tool.
 
-**Data source:** Read the already-validated, aggregated data from `data.json` in
-the working directory. The schema is:
+**Data source:** The harness writes the rows from the most recent successful
+validated query to `data.json` in the working directory, as:
 
 ```json
-{
-  "question": "...",
-  "x": ["label1", ...],
-  "series": {"SeriesName": [val1, ...], ...},
-  "table": {"columns": [...], "rows": [[...], ...]},
-  "prior": {"SeriesName": prior_value, ...}
-}
+{ "rows": [ { "col": value, ... }, ... ] }
 ```
 
-(`prior` is optional; include delta annotations when it is present.)
+`rows` is a list of record dicts straight from BigQuery — these are the ONLY data
+you may chart. Your code reads `data.json`, shapes/aggregates `rows` (e.g. pivot a
+month/category/value layout into series), and renders. Never hardcode values and
+never invent labels or numbers not present in `rows`; you cannot pass data yourself,
+which guarantees the chart reflects real queried data.
 
 **Packages:** Use ONLY preinstalled packages listed in
 `references/available-packages.md`. Never `pip install`; no network access is

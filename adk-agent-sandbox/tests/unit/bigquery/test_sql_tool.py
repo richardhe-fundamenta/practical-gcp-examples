@@ -28,10 +28,24 @@ def test_success_returns_rows():
         assert out["rows"] == [{"a": 1}]
 
 
-def test_run_validated_sql_delegates_to_validate_and_run_sql():
-    """run_validated_sql is the clean ADK-facing wrapper; it must delegate to validate_and_run_sql."""
+def test_run_validated_sql_delegates_and_stores_rows():
+    """run_validated_sql delegates to validate_and_run_sql AND stores the rows in state
+    so the renderer can chart only real, queried data."""
     expected = {"status": "ok", "rows": [{"x": 42}]}
+    ctx = MagicMock()
+    ctx.state = {}
     with patch.object(sql_tool, "validate_and_run_sql", return_value=expected) as mock_inner:
-        out = sql_tool.run_validated_sql("SELECT 42 AS x")
+        out = sql_tool.run_validated_sql("SELECT 42 AS x", ctx)
         mock_inner.assert_called_once_with("SELECT 42 AS x")
         assert out == expected
+        assert ctx.state[sql_tool.VALIDATED_ROWS_KEY] == [{"x": 42}]
+
+
+def test_run_validated_sql_rejected_does_not_store():
+    rejected = {"status": "rejected", "error": "bad"}
+    ctx = MagicMock()
+    ctx.state = {}
+    with patch.object(sql_tool, "validate_and_run_sql", return_value=rejected):
+        out = sql_tool.run_validated_sql("SELECT 1", ctx)
+        assert out == rejected
+        assert sql_tool.VALIDATED_ROWS_KEY not in ctx.state
