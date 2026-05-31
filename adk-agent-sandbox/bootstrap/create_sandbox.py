@@ -99,9 +99,11 @@ def create_sandbox(
         )
     )
 
+    # NOTE: CreateAgentEngineSandboxConfig exposes a `description` field, but the
+    # underlying SandboxEnvironment resource has no such field and the API rejects
+    # it (400 "Unknown name description at sandbox_environment"). So omit it.
     config = {
         "display_name": display_name,
-        "description": "Analyst-harness Python code execution sandbox",
         # wait_for_completion defaults to True — block until sandbox is RUNNING.
         "wait_for_completion": True,
         # ttl: sandbox auto-deletes after this duration (e.g. "86400s" = 24h).
