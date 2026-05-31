@@ -19,6 +19,8 @@ def _frontmatter(md: str) -> dict:
 
 def discover_skills(root: Path) -> list[SkillInfo]:
     out = []
+    if not root.is_dir():
+        return out
     for d in sorted(p for p in root.iterdir() if p.is_dir()):
         f = d / "SKILL.md"
         if f.exists():

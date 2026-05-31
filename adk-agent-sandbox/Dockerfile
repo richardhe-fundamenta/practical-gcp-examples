@@ -22,6 +22,11 @@ COPY ./pyproject.toml ./README.md ./uv.lock* ./
 
 COPY ./app ./app
 
+# The agent loads its skill contract from skills/ at import time
+# (app.skills.loader.active_skill_contract). It MUST be in the image or the
+# container crashes on startup with FileNotFoundError: '/code/skills'.
+COPY ./skills ./skills
+
 RUN uv sync --frozen
 
 ARG COMMIT_SHA=""
