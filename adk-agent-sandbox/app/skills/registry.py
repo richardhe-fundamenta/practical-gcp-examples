@@ -30,8 +30,17 @@ def discover_skills(root: Path) -> list[SkillInfo]:
 
 
 def load_skill_contract(skill_path: Path) -> str:
-    body = (skill_path / "SKILL.md").read_text()
-    pkgs = skill_path / "references" / "available-packages.md"
-    if pkgs.exists():
-        body += "\n\n## Available packages\n" + pkgs.read_text()
-    return body
+    """Return the full activation text for a skill: SKILL.md followed by every file
+    under references/ (sorted), each under a header derived from its filename.
+
+    Loading all reference files means none are dead weight — output-contract.md,
+    security-notes.md, available-packages.md and the example renderer all reach the
+    model, and any new reference file is included automatically.
+    """
+    parts = [(skill_path / "SKILL.md").read_text()]
+    refs = skill_path / "references"
+    if refs.is_dir():
+        for ref in sorted(p for p in refs.iterdir() if p.is_file()):
+            title = ref.stem.replace("-", " ").replace("_", " ").title()
+            parts.append(f"## Reference: {title} ({ref.name})\n\n{ref.read_text()}")
+    return "\n\n".join(parts)
