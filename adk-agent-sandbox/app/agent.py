@@ -74,8 +74,15 @@ You are an expert data analyst agent. Given a user question about data, follow t
      'output.png'. Never hardcode data values in the code.
    Then call render_chart(code=<the Python code>). render_chart takes ONLY the code.
 
-5. RETURN RESULT: If render_chart returns status "ok", return the PNG chart to the user.
-   If render_chart returns status "error", report the error briefly and suggest a fix.
+5. RETURN RESULT: If render_chart returns status "ok", return the PNG chart to the user
+   with a short headline finding. If render_chart returns status "error", report the error
+   briefly and suggest a fix.
+   GROUNDING RULE for your text answer: every number you state in words (totals, deltas,
+   percentages, "leads by X%") MUST be present in, or a correct simple aggregation of, the
+   exact rows returned by run_validated_sql. Do NOT compute elaborate statistics in your
+   head. If you want to state a precise total or percentage, get it by running another
+   validated SQL query that computes it. Otherwise keep the headline qualitative (e.g.
+   "NA leads every month") and let the chart and its table show the exact figures.
 """
 
 def _data_source_block() -> str:
