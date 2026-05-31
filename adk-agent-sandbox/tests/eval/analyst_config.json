@@ -4,7 +4,7 @@
       "threshold": 0.8,
       "judgeModelOptions": {
         "judgeModel": "gemini-flash-latest",
-        "numSamples": 1
+        "numSamples": 3
       },
       "rubrics": [
         {
@@ -25,7 +25,7 @@
       "threshold": 0.8,
       "judgeModelOptions": {
         "judgeModel": "gemini-flash-latest",
-        "numSamples": 1
+        "numSamples": 3
       },
       "rubrics": [
         {
