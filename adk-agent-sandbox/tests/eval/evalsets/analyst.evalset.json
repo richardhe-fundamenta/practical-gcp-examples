@@ -1,0 +1,37 @@
+{
+  "eval_set_id": "analyst_eval",
+  "name": "Analyst Harness Evaluation",
+  "description": "Exercises the full harness loop: schema discovery -> validated SQL -> render. Uses rubric-based metrics because the schema-discovery trajectory is non-deterministic.",
+  "eval_cases": [
+    {
+      "eval_id": "revenue_by_region_trend",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [{"text": "Chart the monthly completed-order revenue by region from the analyst_demo dataset, and tell me the headline finding."}]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "app",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "revenue_by_plan_tier",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [{"text": "Compare total completed-order revenue by customer plan tier in analyst_demo and show it as a chart with the key takeaway."}]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "app",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    }
+  ]
+}
