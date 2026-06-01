@@ -56,4 +56,17 @@ resource "google_project_iam_member" "app_sa_roles" {
   depends_on = [resource.google_project_service.services]
 }
 
+# Allow Gemini Enterprise (Discovery Engine) to invoke the no-allow-unauthenticated A2A
+# Cloud Run service after the agent is published (agents-cli publish gemini-enterprise).
+# Bound by service NAME — the Cloud Run service is agents-cli deploy-owned, not a TF
+# resource here. Requires the Discovery Engine service agent to exist (a Gemini Enterprise
+# app must be set up in the project first).
+resource "google_cloud_run_v2_service_iam_member" "discovery_engine_invoker" {
+  project  = var.project_id
+  location = var.region
+  name     = var.project_name # Cloud Run service name == project_name (analyst-harness)
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-discoveryengine.iam.gserviceaccount.com"
+}
+
 
