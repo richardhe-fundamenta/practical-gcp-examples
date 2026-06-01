@@ -14,13 +14,35 @@ def test_discover_reads_name_and_description(tmp_path):
     assert "chart" in found[0].description
 
 
-def test_load_contract_includes_packages(tmp_path):
+def test_load_contract_includes_all_reference_files(tmp_path):
     sk = tmp_path / "s"
     (sk / "references").mkdir(parents=True)
     (sk / "SKILL.md").write_text("---\nname: s\ndescription: d\n---\nBODY\n")
     (sk / "references" / "available-packages.md").write_text("PKGS")
+    (sk / "references" / "output-contract.md").write_text("CONTRACT")
+    (sk / "references" / "security-notes.md").write_text("SECURITY")
     text = load_skill_contract(sk)
-    assert "BODY" in text and "PKGS" in text
+    assert "BODY" in text
+    assert "PKGS" in text and "CONTRACT" in text and "SECURITY" in text
+
+
+def test_load_contract_escapes_braces_in_references(tmp_path):
+    """Reference braces (e.g. f-string {best}) must be doubled so ADK instruction
+    templating treats them as literals instead of session-state variables."""
+    sk = tmp_path / "s"
+    (sk / "references").mkdir(parents=True)
+    (sk / "SKILL.md").write_text("---\nname: s\ndescription: d\n---\nBODY\n")
+    (sk / "references" / "example_render.py").write_text('x = f"{best}"\n')
+    text = load_skill_contract(sk)
+    assert "{{best}}" in text
+    assert "{best}" not in text.replace("{{best}}", "")
+
+
+def test_load_contract_without_references_dir(tmp_path):
+    sk = tmp_path / "s"
+    sk.mkdir()
+    (sk / "SKILL.md").write_text("---\nname: s\ndescription: d\n---\nONLYBODY\n")
+    assert load_skill_contract(sk).strip().endswith("ONLYBODY")
 
 
 def test_active_skill_contract_loads_real_skill():
