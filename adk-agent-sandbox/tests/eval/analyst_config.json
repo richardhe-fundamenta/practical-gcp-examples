@@ -1,0 +1,46 @@
+{
+  "criteria": {
+    "rubric_based_final_response_quality_v1": {
+      "threshold": 0.8,
+      "judgeModelOptions": {
+        "judgeModel": "gemini-flash-latest",
+        "numSamples": 3
+      },
+      "rubrics": [
+        {
+          "rubricId": "states_headline",
+          "rubricContent": { "textProperty": "The response states a specific, decision-relevant headline finding about the data (e.g. which region or tier leads, or the biggest change), phrased as a conclusion rather than only describing the chart." }
+        },
+        {
+          "rubricId": "delivers_chart",
+          "rubricContent": { "textProperty": "The response indicates that a single chart/visual was produced for the question (not a multi-panel dashboard)." }
+        },
+        {
+          "rubricId": "grounded",
+          "rubricContent": { "textProperty": "The findings are grounded in data actually retrieved from BigQuery, not invented; the agent does not claim numbers it could not have queried." }
+        }
+      ]
+    },
+    "rubric_based_tool_use_quality_v1": {
+      "threshold": 0.8,
+      "judgeModelOptions": {
+        "judgeModel": "gemini-flash-latest",
+        "numSamples": 3
+      },
+      "rubrics": [
+        {
+          "rubricId": "validated_sql",
+          "rubricContent": { "textProperty": "The agent retrieved data by calling run_validated_sql (the gated execution tool) and only proceeded after a successful query, rather than fabricating data." }
+        },
+        {
+          "rubricId": "rendered_via_sandbox",
+          "rubricContent": { "textProperty": "The agent called render_chart to produce the visual, passing generated Python code and the data JSON." }
+        },
+        {
+          "rubricId": "stayed_in_scope",
+          "rubricContent": { "textProperty": "The agent queried only the allowlisted analyst_demo dataset and did not attempt unrelated or public datasets." }
+        }
+      ]
+    }
+  }
+}
