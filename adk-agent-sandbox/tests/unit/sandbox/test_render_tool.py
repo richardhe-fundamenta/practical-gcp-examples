@@ -37,6 +37,10 @@ def test_render_ok_saves_image_artifact_from_stored_rows():
         assert '"a"' in sandbox_kwargs["data_json"]
         assert sandbox_kwargs["engine_name"] == "projects/p/locations/us-central1/reasoningEngines/r"
         assert sandbox_kwargs["tool_context"] is ctx
+        # Stashes a pointer to the saved artifact so the after_agent_callback can return it
+        # as an inline Part (so Gemini Enterprise renders it inline).
+        from app.sandbox.render_tool import PENDING_CHART_KEY
+        assert ctx.state[PENDING_CHART_KEY] == {"filename": "chart.png", "version": 1}
 
 
 def test_render_error_returns_error_and_saves_nothing():

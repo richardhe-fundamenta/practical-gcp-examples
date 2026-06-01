@@ -9,6 +9,12 @@ from app.sandbox.client import execute_in_sandbox, SandboxError
 
 CHART_ARTIFACT_NAME = "chart.png"
 
+# Session-state key under which render_chart records a pointer to the just-saved chart
+# artifact ({"filename", "version"}). The after_agent_callback reads this and returns the
+# artifact as an inline Part in the final response, because Gemini Enterprise only renders
+# files returned inline — not files merely saved via save_artifact (adk-python#4273).
+PENDING_CHART_KEY = "pending_chart_artifact"
+
 
 async def render_chart(code: str, tool_context: ToolContext) -> dict:
     """Render a single chart in the isolated sandbox from the rows returned by your most
@@ -53,10 +59,16 @@ async def render_chart(code: str, tool_context: ToolContext) -> dict:
     except SandboxError as e:
         return {"status": "error", "error": str(e)}
 
-    # Save as an ADK artifact: surfaced to the dev-ui and converted by the A2A layer into a
-    # FilePart (image/png) for A2A clients (e.g. Gemini Enterprise). No base64 in the reply.
-    await tool_context.save_artifact(
+    # Save as an ADK artifact: surfaced to the dev-ui and persisted (GcsArtifactService).
+    version = await tool_context.save_artifact(
         filename=CHART_ARTIFACT_NAME,
         artifact=types.Part(inline_data=types.Blob(mime_type="image/png", data=png)),
     )
+    # Record a pointer so the after_agent_callback can return this artifact as an inline
+    # Part in the final response — Gemini Enterprise renders inline Parts, not saved
+    # artifacts (adk-python#4273).
+    tool_context.state[PENDING_CHART_KEY] = {
+        "filename": CHART_ARTIFACT_NAME,
+        "version": version,
+    }
     return {"status": "ok", "artifact": CHART_ARTIFACT_NAME}

@@ -25,6 +25,7 @@ from google.genai import types
 from app.bigquery.mcp_schema import bq_schema_toolset
 from app.bigquery.sql_tool import run_validated_sql
 from app.sandbox.render_tool import render_chart
+from app.render_callback import attach_chart_to_response
 from app.skills.loader import active_skill_contract
 from app.config import get_settings
 
@@ -126,6 +127,9 @@ root_agent = Agent(
         run_validated_sql,
         render_chart,
     ],
+    # Append the rendered chart as an inline image Part to the final response so Gemini
+    # Enterprise renders it inline (it does not render save_artifact-only files).
+    after_agent_callback=attach_chart_to_response,
 )
 
 app = App(
