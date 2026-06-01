@@ -51,5 +51,31 @@ variable "app_sa_roles" {
     "roles/cloudtrace.agent",
     "roles/storage.admin",
     "roles/serviceusage.serviceUsageConsumer",
+    "roles/bigquery.jobUser",    # run validated queries (jobs)
+    "roles/bigquery.dataViewer", # read allowlisted dataset(s)
   ]
+}
+
+variable "bq_data_region" {
+  description = "BigQuery data region for the analyst dataset (BQ_DATA_REGION env var)."
+  type        = string
+  default     = "US"
+}
+
+variable "bq_dataset_allowlist" {
+  description = "Comma-separated datasets the harness dry-run gate accepts (BQ_DATASET_ALLOWLIST env var). Keep in sync with the dataViewer grant."
+  type        = string
+  default     = "analyst_demo"
+}
+
+variable "bq_max_bytes_billed" {
+  description = "Max bytes a validated query may scan, enforced before execution (BQ_MAX_BYTES_BILLED env var). Default 1 GiB."
+  type        = string
+  default     = "1073741824"
+}
+
+variable "agent_engine_name" {
+  description = "Optional override for the host Agent Engine (reasoningEngine) the harness creates per-session sandboxes under (AGENT_ENGINE_NAME env var). Empty (default) uses the durable engine provisioned in agent_engine.tf; set this to point at an external engine instead."
+  type        = string
+  default     = ""
 }

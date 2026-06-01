@@ -5,7 +5,7 @@ from app.sandbox import render_tool
 
 def _settings():
     s = MagicMock()
-    s.sandbox_resource_name = "projects/p/locations/us-central1/reasoningEngines/r/sandboxEnvironments/s"
+    s.agent_engine_name = "projects/p/locations/us-central1/reasoningEngines/r"
     return s
 
 
@@ -19,7 +19,7 @@ def _ctx(rows):
 def test_render_ok_saves_image_artifact_from_stored_rows():
     ctx = _ctx([{"a": 1}])
     with patch.object(render_tool, "get_settings", return_value=_settings()), \
-         patch.object(render_tool, "run_in_sandbox", return_value=b"\x89PNG\r\n") as ris:
+         patch.object(render_tool, "execute_in_sandbox", return_value=b"\x89PNG\r\n") as eis:
         out = asyncio.run(render_tool.render_chart(code="...", tool_context=ctx))
         assert out["status"] == "ok"
         assert out["artifact"] == "chart.png"
@@ -30,17 +30,20 @@ def test_render_ok_saves_image_artifact_from_stored_rows():
         part = kwargs["artifact"]
         assert part.inline_data.mime_type == "image/png"
         assert part.inline_data.data == b"\x89PNG\r\n"
-        # data.json sent to the sandbox is built from the stored validated rows
-        _, sandbox_kwargs = ris.call_args
+        # data.json sent to the sandbox is built from the stored validated rows,
+        # and the per-session lifecycle gets the host engine + tool_context.
+        sandbox_kwargs = eis.call_args.kwargs
         assert '"rows"' in sandbox_kwargs["data_json"]
         assert '"a"' in sandbox_kwargs["data_json"]
+        assert sandbox_kwargs["engine_name"] == "projects/p/locations/us-central1/reasoningEngines/r"
+        assert sandbox_kwargs["tool_context"] is ctx
 
 
 def test_render_error_returns_error_and_saves_nothing():
     from app.sandbox.client import SandboxError
     ctx = _ctx([{"a": 1}])
     with patch.object(render_tool, "get_settings", return_value=_settings()), \
-         patch.object(render_tool, "run_in_sandbox", side_effect=SandboxError("no output.png")):
+         patch.object(render_tool, "execute_in_sandbox", side_effect=SandboxError("no output.png")):
         out = asyncio.run(render_tool.render_chart(code="boom", tool_context=ctx))
         assert out["status"] == "error"
         assert "no output.png" in out["error"]
@@ -51,9 +54,9 @@ def test_render_refuses_without_validated_rows():
     """No successful query -> no data to chart -> refuse (prevents fabrication)."""
     ctx = _ctx(None)
     with patch.object(render_tool, "get_settings", return_value=_settings()), \
-         patch.object(render_tool, "run_in_sandbox") as ris:
+         patch.object(render_tool, "execute_in_sandbox") as eis:
         out = asyncio.run(render_tool.render_chart(code="...", tool_context=ctx))
         assert out["status"] == "error"
         assert "No validated query results" in out["error"]
-        ris.assert_not_called()
+        eis.assert_not_called()
         ctx.save_artifact.assert_not_awaited()

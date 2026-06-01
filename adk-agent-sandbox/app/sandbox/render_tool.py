@@ -5,7 +5,7 @@ from google.genai import types
 
 from app.config import get_settings
 from app.bigquery.sql_tool import VALIDATED_ROWS_KEY
-from app.sandbox.client import run_in_sandbox, SandboxError
+from app.sandbox.client import execute_in_sandbox, SandboxError
 
 CHART_ARTIFACT_NAME = "chart.png"
 
@@ -43,11 +43,12 @@ async def render_chart(code: str, tool_context: ToolContext) -> dict:
     s = get_settings()
     data_json = json.dumps({"rows": rows})
     try:
-        png = run_in_sandbox(
+        png = execute_in_sandbox(
             code=code,
             data_json=data_json,
             out_name="output.png",
-            resource_name=s.sandbox_resource_name,
+            engine_name=s.agent_engine_name,
+            tool_context=tool_context,
         )
     except SandboxError as e:
         return {"status": "error", "error": str(e)}

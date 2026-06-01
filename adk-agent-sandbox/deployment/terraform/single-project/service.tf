@@ -20,7 +20,7 @@ resource "google_cloud_run_v2_service" "app" {
   deletion_protection = false
   ingress             = "INGRESS_TRAFFIC_ALL"
   labels = {
-    "created-by"                  = "adk"
+    "created-by" = "adk"
   }
 
   template {
@@ -46,9 +46,33 @@ resource "google_cloud_run_v2_service" "app" {
         name  = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"
         value = "NO_CONTENT"
       }
+
+      # Harness runtime config — BigQuery data access + the dry-run gate.
+      env {
+        name  = "BQ_DATA_REGION"
+        value = var.bq_data_region
+      }
+
+      env {
+        name  = "BQ_DATASET_ALLOWLIST"
+        value = var.bq_dataset_allowlist
+      }
+
+      env {
+        name  = "BQ_MAX_BYTES_BILLED"
+        value = var.bq_max_bytes_billed
+      }
+
+      # Durable host Agent Engine for the per-session code-exec sandbox lifecycle.
+      # Defaults to the engine provisioned in agent_engine.tf; var.agent_engine_name
+      # overrides it (coalesce skips empty strings) to point at an external engine.
+      env {
+        name  = "AGENT_ENGINE_NAME"
+        value = coalesce(var.agent_engine_name, google_vertex_ai_reasoning_engine.sandbox_host.id)
+      }
     }
 
-    service_account = google_service_account.app_sa.email
+    service_account                  = google_service_account.app_sa.email
     max_instance_request_concurrency = 40
 
     scaling {

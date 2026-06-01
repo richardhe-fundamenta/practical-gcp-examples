@@ -7,7 +7,10 @@ def test_settings_from_env(monkeypatch):
     monkeypatch.setenv("BQ_DATA_REGION", "EU")
     monkeypatch.setenv("BQ_MAX_BYTES_BILLED", "1073741824")
     monkeypatch.setenv("BQ_DATASET_ALLOWLIST", "analytics,public_data")
-    monkeypatch.setenv("SANDBOX_RESOURCE_NAME", "projects/p/locations/us-central1/sandboxes/s")
+    monkeypatch.setenv(
+        "AGENT_ENGINE_NAME",
+        "projects/p/locations/us-central1/reasoningEngines/r",
+    )
     importlib.reload(config)
     s = config.get_settings()
     assert s.project == "proj"
@@ -15,3 +18,4 @@ def test_settings_from_env(monkeypatch):
     assert s.max_bytes_billed == 1073741824
     assert s.dataset_allowlist == {"analytics", "public_data"}
     assert s.sandbox_region == "us-central1"
+    assert s.agent_engine_name == "projects/p/locations/us-central1/reasoningEngines/r"
