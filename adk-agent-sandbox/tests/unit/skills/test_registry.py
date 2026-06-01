@@ -27,15 +27,17 @@ def test_load_contract_includes_all_reference_files(tmp_path):
 
 
 def test_load_contract_escapes_braces_in_references(tmp_path):
-    """Reference braces (e.g. f-string {best}) must be doubled so ADK instruction
-    templating treats them as literals instead of session-state variables."""
+    """Reference braces (e.g. f-string {best}) must be neutralized so ADK instruction
+    templating treats them as literal text, not session-state variables. ADK's regex
+    strips doubled braces, so we insert a backslash inside each brace instead."""
     sk = tmp_path / "s"
     (sk / "references").mkdir(parents=True)
     (sk / "SKILL.md").write_text("---\nname: s\ndescription: d\n---\nBODY\n")
     (sk / "references" / "example_render.py").write_text('x = f"{best}"\n')
     text = load_skill_contract(sk)
-    assert "{{best}}" in text
-    assert "{best}" not in text.replace("{{best}}", "")
+    # No bare {identifier} survives that ADK would try to resolve as a state var
+    assert "{best}" not in text
+    assert "{\\best\\}" in text
 
 
 def test_load_contract_without_references_dir(tmp_path):

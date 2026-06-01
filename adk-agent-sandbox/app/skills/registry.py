@@ -30,14 +30,16 @@ def discover_skills(root: Path) -> list[SkillInfo]:
 
 
 def _escape_braces(text: str) -> str:
-    """Escape literal braces so ADK's instruction templating treats them as literals.
+    """Neutralize literal braces so ADK's instruction templating treats them as text.
 
     ADK resolves ``{name}`` in an instruction as a session-state variable and raises
     KeyError if missing. Reference files (notably the example renderer's f-strings like
-    ``{best}``) contain such braces; doubling them (``{{`` / ``}}``) is ADK's escape and
-    renders back to single braces for the model.
+    ``{best}``) contain such braces. ADK's template regex is ``{+[^{}]*}+``, so doubling
+    (``{{ }}``) does NOT escape — it strips all braces and still resolves the inner name.
+    Inserting a backslash inside each brace makes the inner token an invalid state name
+    (``\\best``), so ADK leaves the whole span as literal text.
     """
-    return text.replace("{", "{{").replace("}", "}}")
+    return text.replace("{", "{\\").replace("}", "\\}")
 
 
 def load_skill_contract(skill_path: Path) -> str:
