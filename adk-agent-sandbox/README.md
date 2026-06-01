@@ -8,8 +8,10 @@ returns **one** annotated chart (PNG) with the headline finding.
 Built with [ADK](https://adk.dev/) via `agents-cli` (`adk_a2a` template), deployed to
 **Cloud Run** behind the **A2A protocol**. Model: `gemini-3.1-pro-preview`.
 
-> Status: core loop complete and evaluated. Cloud Run deploy is wired but the sandbox
-> lifecycle + dedicated runtime service account are unfinished — see [TODO.md](./TODO.md).
+> Status: deployed to Cloud Run and verified end-to-end. The per-session sandbox lifecycle
+> (lazy get-or-create + self-heal on expiry), the dedicated least-privilege runtime service
+> account/IAM, and the durable host Agent Engine are all provisioned via Terraform
+> (`deployment/terraform/single-project/`).
 
 ## Architecture
 
@@ -66,7 +68,7 @@ adk-agent-sandbox/
 ├── bootstrap/
 │   ├── create_dataset.py         # creates the analyst_demo BigQuery demo dataset (US)
 │   └── create_sandbox.py         # creates an Agent Engine code-exec sandbox (us-central1)
-├── deployment/terraform/         # single-project infra (app_sa, IAM, telemetry) — see TODO.md
+├── deployment/terraform/         # single-project infra: app_sa, IAM, host Agent Engine, telemetry
 ├── tests/                        # unit + integration tests
 │   └── eval/                     # rubric-based evalset + config (analyst.evalset.json)
 ├── docs/superpowers/             # design spec + implementation plan
@@ -93,15 +95,19 @@ agents-cli install
 # Creates the analyst_demo star schema (customers, products, orders, order_items) in US
 uv run python bootstrap/create_dataset.py
 
-# Creates a Python code-execution sandbox (us-central1) under an Agent Engine and prints
-# SANDBOX_RESOURCE_NAME. Requires an existing reasoningEngine parent — see the script header.
-uv run python bootstrap/create_sandbox.py --engine-name <reasoningEngine resource name>
+# The agent runs code in a per-session sandbox created on demand under a durable host
+# Agent Engine (reasoningEngine). `agents-cli infra single-project` provisions that engine
+# (see Deployment); for local dev, point AGENT_ENGINE_NAME at any existing engine. Smoke-test
+# sandbox creation under it with:
+uv run python bootstrap/create_sandbox.py --engine-name <reasoningEngine resource name> --list
 ```
 
 > ⚠️ The Agent Engine code-execution sandbox is **us-central1-only**. Only small,
 > aggregated, validated JSON crosses into it (no raw rows); BigQuery data stays in its
-> own region. Sandboxes also expire (TTL) — see [TODO.md](./TODO.md) for the planned
-> per-session lazy get-or-create lifecycle.
+> own region. Sandboxes expire (TTL), so the harness uses a **per-session lazy
+> get-or-create** lifecycle: it caches a sandbox name in session state, reuses it within
+> the session, and transparently recreates it under `AGENT_ENGINE_NAME` on a
+> `404`/`FAILED_PRECONDITION`. The host Agent Engine itself must be persistent.
 
 ### 3. Configure environment
 
@@ -117,8 +123,9 @@ BQ_DATA_REGION=US
 BQ_DATASET_ALLOWLIST=analyst_demo          # comma-separated; the gate rejects anything else
 BQ_MAX_BYTES_BILLED=1073741824             # 1 GiB cap, enforced before execution
 
-# Agent Engine code-exec sandbox (from bootstrap/create_sandbox.py)
-SANDBOX_RESOURCE_NAME=projects/.../locations/us-central1/reasoningEngines/.../sandboxEnvironments/...
+# Durable host Agent Engine — the harness lazily creates a per-session code-exec sandbox
+# under it and self-heals when one expires. Provisioned by `agents-cli infra single-project`.
+AGENT_ENGINE_NAME=projects/.../locations/us-central1/reasoningEngines/...
 ```
 
 ## Quick Start
@@ -155,15 +162,35 @@ agents-cli eval run \
 
 ## Deployment
 
+Recommended (Terraform-managed): provision the infra, then deploy bound to the dedicated
+service account. Terraform creates the `app_sa` with least-privilege IAM, the durable host
+Agent Engine, and the runtime env vars (`BQ_*`, `AGENT_ENGINE_NAME`):
+
 ```bash
 gcloud config set project <your-project-id>
-agents-cli deploy --update-env-vars "BQ_DATA_REGION=US,BQ_DATASET_ALLOWLIST=analyst_demo,BQ_MAX_BYTES_BILLED=1073741824,SANDBOX_RESOURCE_NAME=<...>"
+agents-cli infra single-project      # app_sa + IAM, host Agent Engine, env vars, telemetry
+agents-cli deploy --service-account analyst-harness-app@<your-project-id>.iam.gserviceaccount.com
 ```
 
-This builds from the `Dockerfile` (which must include `skills/`) and deploys to Cloud Run
-with the A2A endpoint at `/a2a/app`. The runtime service account needs BigQuery and
-Vertex AI permissions — see [TODO.md](./TODO.md) for the dedicated-SA + Terraform work
-that is not yet complete.
+Quick deploy without Terraform (runs as the default compute SA; pass env vars inline):
+
+```bash
+agents-cli deploy --update-env-vars "BQ_DATA_REGION=US,BQ_DATASET_ALLOWLIST=analyst_demo,BQ_MAX_BYTES_BILLED=1073741824,AGENT_ENGINE_NAME=<...>"
+```
+
+Either path builds from the `Dockerfile` (which must include `skills/`) and deploys to
+Cloud Run with the A2A endpoint at `/a2a/app`.
+
+> Note: the Cloud Run service is owned by `agents-cli deploy`, not Terraform (`infra
+> single-project` provisions the SA, host Agent Engine, and telemetry). Bind the service to
+> the dedicated SA with `agents-cli deploy --service-account analyst-harness-app@<project>.iam.gserviceaccount.com`.
+
+Verify a deployment end-to-end:
+
+```bash
+agents-cli run --url <service-url> --mode a2a \
+  "Chart monthly completed-order revenue by region from analyst_demo"
+```
 
 To register with Gemini Enterprise after deploy, see `agents-cli publish gemini-enterprise`.
 

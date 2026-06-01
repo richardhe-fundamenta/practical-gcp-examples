@@ -26,6 +26,14 @@ from __future__ import annotations
 
 import vertexai
 
+# Session-state key under which the current session's sandbox resource name is cached.
+# Plain (unprefixed) key => session-scoped: each session gets its own sandbox, isolating
+# users from one another and letting an expired sandbox be transparently recreated.
+SANDBOX_NAME_KEY = "sandbox_name"
+
+# Display name for sandboxes the harness creates on demand under the host Agent Engine.
+_SANDBOX_DISPLAY_NAME = "analyst-harness-sandbox"
+
 
 class SandboxError(Exception):
     """Raised when sandbox execution fails or the expected artifact is missing."""
@@ -33,6 +41,129 @@ class SandboxError(Exception):
 
 def _client_default(location: str = "us-central1") -> vertexai.Client:  # type: ignore[name-defined]
     return vertexai.Client(location=location)
+
+
+def _create_sandbox(engine_name: str, client) -> str:
+    """Create a Python code-exec sandbox under ``engine_name`` and return its resource name.
+
+    Imports the spec types lazily so the module import stays light and does not depend
+    on the ``vertexai._genai`` internals at load time.
+    """
+    from vertexai._genai.types.common import (
+        Language,
+        SandboxEnvironmentSpec,
+        SandboxEnvironmentSpecCodeExecutionEnvironment,
+    )
+
+    spec = SandboxEnvironmentSpec(
+        code_execution_environment=SandboxEnvironmentSpecCodeExecutionEnvironment(
+            code_language=Language.LANGUAGE_PYTHON,
+            machine_config=None,  # default: ~2000 milliGCU, 1.5 GiB RAM
+        )
+    )
+    operation = client.agent_engines.sandboxes.create(
+        name=engine_name,
+        spec=spec,
+        config={"display_name": _SANDBOX_DISPLAY_NAME, "wait_for_completion": True},
+    )
+    sandbox = getattr(operation, "response", None)
+    name = getattr(sandbox, "name", None) if sandbox is not None else None
+    if not name:
+        raise SandboxError(
+            f"Sandbox creation under {engine_name!r} returned no resource name."
+        )
+    return name
+
+
+def _refresh_sandbox(engine_name: str, tool_context, client) -> str:
+    """Create a fresh sandbox and cache its name in session state, replacing any prior one."""
+    name = _create_sandbox(engine_name, client)
+    tool_context.state[SANDBOX_NAME_KEY] = name
+    return name
+
+
+def get_or_create_sandbox(engine_name: str, tool_context, *, _client=None) -> str:
+    """Return this session's sandbox resource name, creating one under ``engine_name``
+    (a durable host Agent Engine) on first use and caching it in ``tool_context.state``.
+
+    Args:
+        engine_name:   Resource name of the persistent host Agent Engine (reasoningEngine).
+        tool_context:  ADK ToolContext; its ``.state`` holds the per-session sandbox name.
+        _client:       Optional pre-built client (used by tests to inject a mock).
+    """
+    name = tool_context.state.get(SANDBOX_NAME_KEY)
+    if name:
+        return name
+    client = _client or _client_default()
+    return _refresh_sandbox(engine_name, tool_context, client)
+
+
+def _is_stale_sandbox_error(exc: Exception) -> bool:
+    """True if ``exc`` indicates the cached sandbox (or its host engine) no longer exists.
+
+    Agent Engine code-exec sandboxes have a TTL; once expired, execute returns
+    ``404 NOT_FOUND`` or ``400 FAILED_PRECONDITION``. We treat those — and a missing-code
+    fallback on the message — as a signal to recreate. Other failures are not retried.
+    """
+    code = getattr(exc, "code", None)
+    status = str(getattr(exc, "status", "") or "")
+    blob = f"{status} {exc}".upper()
+    if code == 404:
+        return True
+    if code == 400 and "FAILED_PRECONDITION" in blob:
+        return True
+    if code is None and ("NOT_FOUND" in blob or "FAILED_PRECONDITION" in blob):
+        return True
+    return False
+
+
+def execute_in_sandbox(
+    *,
+    code: str,
+    data_json: str,
+    out_name: str,
+    engine_name: str,
+    tool_context,
+    _client=None,
+) -> bytes:
+    """Run render code in this session's sandbox, lazily creating one under ``engine_name``
+    and self-healing if the cached sandbox has expired.
+
+    Looks up (or creates) the session's sandbox, executes once, and on a stale-sandbox
+    error recreates a fresh sandbox and retries exactly once. Non-stale failures (e.g. a
+    missing output artifact) propagate without retry.
+
+    Args:
+        code:          Python source to execute in the sandbox.
+        data_json:     JSON string exposed as ``data.json`` inside the sandbox.
+        out_name:      Expected output filename (e.g. ``"output.png"``).
+        engine_name:   Resource name of the persistent host Agent Engine.
+        tool_context:  ADK ToolContext; ``.state`` caches the per-session sandbox name.
+        _client:       Optional pre-built client (used by tests to inject a mock).
+
+    Returns:
+        Raw bytes of the named output artifact.
+
+    Raises:
+        SandboxError:  If the sandbox emits error output or the expected artifact is absent.
+    """
+    client = _client or _client_default()
+    name = get_or_create_sandbox(engine_name, tool_context, _client=client)
+    try:
+        return run_in_sandbox(
+            code=code, data_json=data_json, out_name=out_name,
+            resource_name=name, _client=client,
+        )
+    except Exception as exc:
+        if not _is_stale_sandbox_error(exc):
+            raise
+
+    # Stale sandbox: drop it, create a fresh one under the host engine, retry exactly once.
+    name = _refresh_sandbox(engine_name, tool_context, client)
+    return run_in_sandbox(
+        code=code, data_json=data_json, out_name=out_name,
+        resource_name=name, _client=client,
+    )
 
 
 def _extract_file_name(chunk) -> str | None:

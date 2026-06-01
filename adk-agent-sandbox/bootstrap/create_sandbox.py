@@ -10,8 +10,13 @@ IMPORTANT NOTES:
   - The sandbox lives under a reasoningEngines parent resource; you must supply
     an existing reasoningEngine resource name (or create a stub engine first).
 
-After running, set this env var (e.g. in .env):
-  SANDBOX_RESOURCE_NAME=<printed value>
+The harness no longer pins a single sandbox: it lazily creates a per-session sandbox
+under a durable host Agent Engine and recreates it on expiry. So the env var the app
+needs is the *engine* it creates sandboxes under:
+  AGENT_ENGINE_NAME=<the --engine-name you pass below>
+
+This script just creates one sandbox under that engine as a smoke test (it will expire);
+use --list to confirm sandboxes can be created/listed under the engine.
 
 Run with:
   uv run python bootstrap/create_sandbox.py --engine-name <reasoningEngine resource name>
@@ -129,11 +134,11 @@ def create_sandbox(
         )
 
     resource_name = sandbox.name
-    print(f"\nSandbox created successfully.")
+    print(f"\nSandbox created successfully (smoke test — this sandbox will expire).")
     print(f"  Display name : {sandbox.display_name}")
     print(f"  Resource name: {resource_name}")
-    print(f"\nSet this in your .env:")
-    print(f"  SANDBOX_RESOURCE_NAME={resource_name}")
+    print(f"\nThe app creates sandboxes on demand; set the HOST ENGINE in your .env:")
+    print(f"  AGENT_ENGINE_NAME={engine_name}")
     return resource_name
 
 
