@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>adk-agy-agent — concept</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme" />
+
+  <style>
+    :root { --g-blue:#4285f4; --g-green:#34a853; --g-yellow:#f9ab00; --g-purple:#a142f4; }
+    .reveal h1,.reveal h2,.reveal h3{ color:#202124; font-weight:700; letter-spacing:-.01em; }
+    .reveal h1{ font-size:2.0em; }
+    .reveal section{ font-size:30px; }
+    .reveal .subtitle{ color:#5f6368; font-size:.7em; }
+    .reveal .cap{ color:#5f6368; font-size:.62em; margin-top:.3em; }
+    .reveal .hero{ max-height:540px; width:auto; border-radius:16px; box-shadow:0 6px 30px rgba(0,0,0,.14); }
+    .reveal pre.mermaid{ box-shadow:none; background:transparent; font-size:.42em; line-height:1; }
+    .reveal pre.mermaid svg{ max-height:560px; width:auto; }
+    .reveal ul{ display:inline-block; text-align:left; }
+    .reveal li{ margin:.35em 0; }
+    .reveal .muted{ color:#5f6368; }
+    .reveal code{ background:#f1f3f4; padding:.1em .35em; border-radius:5px; font-size:.85em; }
+    .reveal a{ color:var(--g-blue); }
+    .pill{ display:inline-block; padding:.12em .6em; border-radius:999px; font-size:.6em; font-weight:600; }
+    .pill.blue{background:#e8f0fe;color:#1967d2} .pill.green{background:#e6f4ea;color:#137333}
+    .pill.yellow{background:#fef7e0;color:#b06000} .pill.purple{background:#f3e8fd;color:#7b1fa2}
+    .reveal .footer{ position:fixed; bottom:8px; left:14px; font-size:13px; color:#9aa0a6; }
+    .kbd{ font-family:monospace; background:#202124; color:#e8eaed; padding:.15em .5em; border-radius:6px; font-size:.62em; }
+    .reveal .step{ font-size:.55em; color:#9aa0a6; letter-spacing:.08em; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+  <!-- TITLE -->
+  <section data-auto-animate>
+    <h1 data-id="t">adk&#8209;agy&#8209;agent</h1>
+    <p class="subtitle">Agent skills, sandboxed &amp; rolled out org-wide — on the Gemini Enterprise Agent Platform</p>
+    <p>
+      <span class="pill green">Agent Skills</span>
+      <span class="pill yellow">Sandbox execution</span>
+      <span class="pill blue">Managed Agent API</span>
+      <span class="pill purple">A2A · Cloud Run</span>
+    </p>
+  </section>
+
+  <!-- 1 · WHY -->
+  <section>
+    <p class="step">1 · Why</p>
+    <h2>Agent skills are taking off</h2>
+    <img class="hero" src="assets/why-skills.png" alt="modular agent skills" />
+    <p class="cap">A simple, composable way to structure agentic tasks — and reuse them as sub-agents.
+      &nbsp;<a href="https://agentskills.io/home">agentskills.io</a></p>
+  </section>
+
+  <!-- 2 · SANDBOX -->
+  <section>
+    <p class="step">2 · The superpower</p>
+    <h2>Skills can run real code — safely</h2>
+    <img class="hero" src="assets/sandbox-execution.png" alt="secure sandbox execution" />
+    <p class="cap">The most powerful part: a skill can write &amp; execute code in an isolated sandbox.</p>
+  </section>
+
+  <!-- 3 · SCALE -->
+  <section>
+    <p class="step">3 · The question</p>
+    <h2>What if you could roll this out org-wide — simply?</h2>
+    <img class="hero" src="assets/scale-rollout.png" alt="deploy once, roll out org-wide" />
+    <p class="cap">Deploy once · everyone gets the skills · add more with a single upload.</p>
+  </section>
+
+  <!-- 4 · INTRODUCING -->
+  <section data-auto-animate>
+    <p class="step">4 · The enabler</p>
+    <h1 data-id="m">Managed Agent API</h1>
+    <p class="subtitle">built on the Antigravity Harness · <b>preview</b></p>
+    <p><span class="pill yellow">sandbox</span> <span class="pill blue">skills from GCS</span>
+       <span class="pill green">one API call</span></p>
+  </section>
+
+  <!-- 5a · ARCHITECTURE -->
+  <section>
+    <p class="step">5 · Concept &amp; architecture</p>
+    <h2>How it fits together</h2>
+    <img class="hero" src="assets/architecture.png" alt="architecture diagram" />
+    <p class="cap">Skills live in a <b>GCS bucket</b>, mounted into the managed agent's sandbox.</p>
+  </section>
+
+  <!-- 5b · REQUEST FLOW -->
+  <section>
+    <p class="step">5 · Concept &amp; architecture</p>
+    <h2>What happens on a request</h2>
+    <pre class="mermaid">
+sequenceDiagram
+    actor U as User
+    participant ADK as ADK agent (Cloud Run)
+    participant MA as Managed agent (sandbox)
+    participant GCS as Skills bucket
+    U->>ADK: "prime factors of 360?"
+    ADK->>MA: run_skill_task() · Interactions API
+    MA->>GCS: read /.agent/skills (on demand)
+    Note over MA: picks the prime-factors skill, runs Python in the sandbox
+    MA-->>ADK: 360 = 2^3 x 3^2 x 5
+    ADK-->>U: answer + behind-the-scenes
+    </pre>
+  </section>
+
+  <!-- 5c · ADD A SKILL -->
+  <section>
+    <p class="step">5 · Concept &amp; architecture</p>
+    <h2>Adding a skill = one upload</h2>
+    <pre class="mermaid">
+flowchart LR
+    a["Drop skills/NAME/SKILL.md<br/>into the bucket"]:::s --> b["Next interaction"]:::s --> c["Loaded on demand"]:::s --> d["Usable<br/>no redeploy"]:::ok
+    classDef s fill:#e8f0fe,stroke:#4285f4;
+    classDef ok fill:#e6f4ea,stroke:#34a853,stroke-width:2px;
+    </pre>
+    <p>
+      <span class="pill blue">echo</span> <span class="pill green">reverse</span>
+      <span class="pill yellow">prime-factors</span> <span class="pill purple">bigquery-basics</span>
+    </p>
+    <p class="cap"><span class="kbd">gcloud storage cp -r my-skill gs://…-agy-skills/skills/</span></p>
+  </section>
+
+  <!-- 6 · DEMO -->
+  <section data-auto-animate>
+    <p class="step">6 · Demo</p>
+    <h1 data-id="m">Demo</h1>
+    <p class="subtitle">Factor a number · reverse text · query BigQuery —
+      then upload a brand-new skill live and watch it just work.</p>
+  </section>
+
+  <!-- 7 · LIMITATIONS -->
+  <section>
+    <p class="step">7 · Limitations</p>
+    <h2>Things to know</h2>
+    <p style="display:inline-block;background:#fce8e6;color:#c5221f;border:2px solid #c5221f;
+              border-radius:12px;padding:.4em 1em;font-weight:700;font-size:1.0em;margin:.2em 0 .6em">
+      ⚠️ Proof-of-concept — not production-ready yet
+    </p>
+    <ul style="font-size:.92em">
+      <li>🔒 <b>Network egress can't be locked down</b> — with skills mounted, the sandbox
+        allowlist <b>must be <code>*</code></b> (open). The preview rejects specific domains.</li>
+      <li>🧪 <b>Preview platform</b> — Managed Agents (Antigravity) is in preview; behaviour may change.</li>
+    </ul>
+  </section>
+
+</div></div>
+
+<div class="footer">adk-agy-agent · agent skills, sandboxed &amp; at scale</div>
+
+<script type="module">
+  import Reveal from 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.esm.js';
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad:false, theme:'default', securityLevel:'loose',
+                       flowchart:{ htmlLabels:true, useMaxWidth:true } });
+  await mermaid.run({ querySelector:'pre.mermaid' });
+  const deck = new Reveal({ hash:true, slideNumber:'c/t', controls:true, progress:true,
+                            transition:'slide', width:1100, height:760, margin:0.05,
+                            minScale:0.2, maxScale:1.6 });
+  deck.initialize();
+</script>
+</body>
+</html>
