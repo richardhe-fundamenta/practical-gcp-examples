@@ -49,24 +49,22 @@ class SkillProxyAgent(BaseAgent):
         prompt = _latest_user_text(ctx)
         if not prompt:
             return
-        chunks: list[str] = []
+        # Emit each chunk as an incremental partial — and DON'T follow with an
+        # accumulated final event. With the partial-aware A2A converter
+        # (force_new_version in fast_api_app), partial events become append=True
+        # artifact deltas; a non-partial final would become an append=False
+        # full-text *replace*. Consumers that honor append=False dedupe it, but
+        # render-all ones (Gemini Enterprise console) re-render it → the whole
+        # answer shown twice. Streaming deltas only means the full text is never
+        # re-sent, so it renders exactly once everywhere.
         async for chunk in stream_skill_task(prompt, ctx.session.state):
             if not chunk:
                 continue
-            chunks.append(chunk)
             yield Event(
                 author=self.name,
                 content=types.Content(role="model", parts=[types.Part(text=chunk)]),
                 partial=True,
             )
-        yield Event(
-            author=self.name,
-            content=types.Content(
-                role="model",
-                parts=[types.Part(text="".join(chunks).strip() or "(no output)")],
-            ),
-            turn_complete=True,
-        )
 
 
 root_agent = SkillProxyAgent(

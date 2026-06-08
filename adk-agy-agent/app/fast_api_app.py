@@ -56,8 +56,15 @@ runner = Runner(
     session_service=InMemorySessionService(),
 )
 
+# force_new_version=True selects ADK's partial-aware A2A converter, which turns the
+# agent's incremental partial events into append=True artifact deltas streamed into
+# a SINGLE artifact (see app/agent.py for why we emit deltas only). The legacy
+# converter (default — only superseded when the client activates the integration
+# extension, which GE does not) instead emits every partial AND an accumulated
+# final AS working-status messages PLUS a duplicate artifact, so a render-all
+# consumer like the Gemini Enterprise console shows the answer multiple times.
 request_handler = DefaultRequestHandler(
-    agent_executor=A2aAgentExecutor(runner=runner),
+    agent_executor=A2aAgentExecutor(runner=runner, force_new_version=True),
     task_store=InMemoryTaskStore(),
 )
 
