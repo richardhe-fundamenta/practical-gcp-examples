@@ -13,52 +13,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.adk.agents import Agent
+import os
+from collections.abc import AsyncIterator
+
+import google.auth
+from google.adk.agents import BaseAgent
+from google.adk.agents.invocation_context import InvocationContext
 from google.adk.apps import App
-from google.adk.models import Gemini
+from google.adk.events import Event
 from google.genai import types
 
-import os
-import google.auth
-
-from .managed_agent import run_skill_task
+from .managed_agent import stream_skill_task
 
 _, project_id = google.auth.default()
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
-os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
-os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
 
-root_agent = Agent(
+def _latest_user_text(ctx: InvocationContext) -> str:
+    content = ctx.user_content
+    if content and content.parts:
+        return "".join(p.text or "" for p in content.parts).strip()
+    return ""
+
+
+class SkillProxyAgent(BaseAgent):
+    """Thin pass-through to the managed skills agent.
+
+    No LLM of its own: it forwards the user's message to the managed agent and
+    streams that output straight back (reasoning, tool calls, results, answer) in
+    order — so there's no second LLM pass on the ADK side. Conversation + sandbox
+    continuity is carried in session state.
+    """
+
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncIterator[Event]:
+        prompt = _latest_user_text(ctx)
+        if not prompt:
+            return
+        chunks: list[str] = []
+        async for chunk in stream_skill_task(prompt, ctx.session.state):
+            if not chunk:
+                continue
+            chunks.append(chunk)
+            yield Event(
+                author=self.name,
+                content=types.Content(role="model", parts=[types.Part(text=chunk)]),
+                partial=True,
+            )
+        yield Event(
+            author=self.name,
+            content=types.Content(
+                role="model",
+                parts=[types.Part(text="".join(chunks).strip() or "(no output)")],
+            ),
+            turn_complete=True,
+        )
+
+
+root_agent = SkillProxyAgent(
     name="root_agent",
-    model=Gemini(
-        model="gemini-flash-latest",
-        retry_options=types.HttpRetryOptions(attempts=3),
-    ),
-    instruction=(
-        "You are a thin front door to a skills-powered backend. You have NO "
-        "capabilities or skills of your own — every capability comes from the "
-        "managed skills backend, which you reach ONLY by calling run_skill_task. "
-        "The available skills are whatever is currently mounted in that backend; "
-        "you do not know them in advance and must never invent, assume, or "
-        "describe capabilities from your own knowledge.\n\n"
-        "Rules:\n"
-        "1. If the user asks what you can do, what skills/capabilities/tools are "
-        "available, or anything about your abilities, call run_skill_task with an "
-        "instruction like: 'List the skills currently available to you under "
-        "/.agent/skills. For each, give its name and a one-line description.' Then "
-        "relay exactly what comes back — do not add capabilities it did not list.\n"
-        "2. For any actual task, call run_skill_task with a clear, self-contained "
-        "instruction and relay the result. If the result includes a section titled "
-        "'how the skills agent worked it out', present that step-by-step trace to "
-        "the user (e.g. under a 'Behind the scenes' heading) after the answer, so "
-        "they can see the reasoning and tool calls — do not hide it.\n"
-        "3. Only respond directly (without the tool) for trivial conversational "
-        "pleasantries (e.g. 'hello', 'thanks').\n"
-        "4. If run_skill_task reports the skills environment is unavailable or not "
-        "provisioned, tell the user plainly and do not retry in a loop."
-    ),
-    tools=[run_skill_task],
+    description="Front door that streams a skills-powered sandbox agent (Skill Registry).",
 )
 
 app = App(

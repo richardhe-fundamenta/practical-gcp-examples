@@ -6,10 +6,13 @@ live API — see docs/NOTES-platform-api.md.
 """
 from __future__ import annotations
 
+import json
 import time
+from collections.abc import AsyncIterator
 
 import google.auth
-from google.auth.transport.requests import AuthorizedSession
+import httpx
+from google.auth.transport.requests import AuthorizedSession, Request
 
 from . import config, platform_api
 
@@ -242,3 +245,84 @@ def run_skill_task(prompt: str, tool_context) -> str:
                 f"↪ result):\n{transcript}"
             )
     return answer
+
+
+def _access_token() -> str:
+    creds, _ = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    creds.refresh(Request())
+    return creds.token
+
+
+async def stream_skill_task(prompt: str, state: dict) -> AsyncIterator[str]:
+    """Stream the managed agent's output as friendly text chunks, in order.
+
+    Talks to the Interactions API with stream=true (SSE) and yields the agent's
+    reasoning, tool calls (🔧), tool results (↪), and answer as they arrive — the
+    same rendering as examples/chat_with_agent.py, but over REST so the ADK agent
+    can relay it straight through A2A (no extra LLM pass). Carries conversation +
+    sandbox continuity via `state`.
+    """
+    try:
+        token = _access_token()
+    except Exception:
+        yield PERMISSION_MESSAGE
+        return
+
+    body: dict = {
+        "input": prompt,
+        "agent": config.MANAGED_AGENT_ID,
+        "background": True,
+        "store": True,
+        "stream": True,
+    }
+    if state.get("previous_interaction_id"):
+        body["previous_interaction_id"] = state["previous_interaction_id"]
+    if state.get("environment_id"):
+        body["environment"] = {"env_id": state["environment_id"]}
+
+    url = platform_api.interactions_url(config.PROJECT, config.LOCATION)
+    headers = {"Authorization": f"Bearer {token}"}
+    # REST SSE schema: content.start / content.delta {delta:{text}} / content.stop,
+    # interaction.start|complete, terminated by `data: [DONE]`.
+    event = None
+    buffer = ""
+    try:
+        async with httpx.AsyncClient(timeout=config.INTERACT_TIMEOUT_S) as client:
+            async with client.stream("POST", url, json=body, headers=headers) as resp:
+                if resp.status_code != 200:
+                    await resp.aread()
+                    yield classify_error(resp.status_code)
+                    return
+                async for line in resp.aiter_lines():
+                    if line.startswith("event:"):
+                        event = line[6:].strip()
+                        continue
+                    if not line.startswith("data:"):
+                        continue
+                    payload = line[5:].strip()
+                    if not payload or payload == "[DONE]":
+                        continue
+                    data = json.loads(payload)
+                    inter = data.get("interaction") or {}
+                    if inter.get("id"):
+                        state["previous_interaction_id"] = inter["id"]
+                    env_id = data.get("environment_id") or inter.get("environment_id")
+                    if env_id:
+                        state["environment_id"] = env_id
+
+                    if event == "content.start":
+                        buffer = ""
+                    elif event == "content.delta":
+                        x = (data.get("delta") or {}).get("text")
+                        if x:
+                            # deltas may be incremental or cumulative — handle both
+                            yield x[len(buffer):] if x.startswith(buffer) else x
+                            buffer = x if x.startswith(buffer) else buffer + x
+                    elif event == "content.stop":
+                        if buffer:
+                            yield "\n"
+    except Exception:
+        yield TRANSIENT_MESSAGE
+        return
