@@ -69,7 +69,7 @@
     <p class="step">3 · The question</p>
     <h2>What if you could roll this out org-wide — simply?</h2>
     <img class="hero" src="assets/scale-rollout.png" alt="deploy once, roll out org-wide" />
-    <p class="cap">Deploy once · everyone gets the skills · add more with a single upload.</p>
+    <p class="cap">Deploy once · everyone gets the skills · add more by registering a skill.</p>
   </section>
 
   <!-- 4 · INTRODUCING -->
@@ -77,7 +77,7 @@
     <p class="step">4 · The enabler</p>
     <h1 data-id="m">Managed Agent API</h1>
     <p class="subtitle">built on the Antigravity Harness · <b>preview</b></p>
-    <p><span class="pill yellow">sandbox</span> <span class="pill blue">skills from GCS</span>
+    <p><span class="pill yellow">sandbox</span> <span class="pill blue">skills from the registry</span>
        <span class="pill green">one API call</span></p>
   </section>
 
@@ -86,7 +86,7 @@
     <p class="step">5 · Concept &amp; architecture</p>
     <h2>How it fits together</h2>
     <img class="hero" src="assets/architecture.png" alt="architecture diagram" />
-    <p class="cap">Skills live in a <b>GCS bucket</b>, mounted into the managed agent's sandbox.</p>
+    <p class="cap">Skills are registered in the <b>Skill Registry</b>, mounted <b>read-only</b> into the sandbox.</p>
   </section>
 
   <!-- 5b · REQUEST FLOW -->
@@ -96,33 +96,35 @@
     <pre class="mermaid">
 sequenceDiagram
     actor U as User
-    participant ADK as ADK agent (Cloud Run)
+    participant ADK as ADK proxy (Cloud Run · no LLM)
     participant MA as Managed agent (sandbox)
-    participant GCS as Skills bucket
+    participant SR as Skill Registry
     U->>ADK: "prime factors of 360?"
-    ADK->>MA: run_skill_task() · Interactions API
-    MA->>GCS: read /.agent/skills (on demand)
-    Note over MA: picks the prime-factors skill, runs Python in the sandbox
-    MA-->>ADK: 360 = 2^3 x 3^2 x 5
-    ADK-->>U: answer + behind-the-scenes
+    ADK->>MA: stream interaction (background + stream)
+    SR-->>MA: skills mounted read-only
+    Note over MA: picks prime-factorizer, runs Python in the sandbox
+    MA-->>ADK: SSE: reasoning → 360 = 2^3 x 3^2 x 5
+    ADK-->>U: streamed straight through (A2A)
     </pre>
+    <p class="cap">The ADK agent has <b>no LLM</b> — it streams the managed agent's output
+      straight back (one LLM total · latency ≈ the managed agent alone).</p>
   </section>
 
   <!-- 5c · ADD A SKILL -->
   <section>
     <p class="step">5 · Concept &amp; architecture</p>
-    <h2>Adding a skill = one upload</h2>
+    <h2>Adding a skill = register + reconcile</h2>
     <pre class="mermaid">
 flowchart LR
-    a["Drop skills/NAME/SKILL.md<br/>into the bucket"]:::s --> b["Next interaction"]:::s --> c["Loaded on demand"]:::s --> d["Usable<br/>no redeploy"]:::ok
+    a["Add skills/NAME/<br/>to the repo"]:::s --> b["register_skills.py<br/>(Skill Registry)"]:::s --> c["bootstrap<br/>(mount on agent)"]:::s --> d["Usable · read-only<br/>no redeploy"]:::ok
     classDef s fill:#e8f0fe,stroke:#4285f4;
     classDef ok fill:#e6f4ea,stroke:#34a853,stroke-width:2px;
     </pre>
     <p>
       <span class="pill blue">echo</span> <span class="pill green">reverse</span>
-      <span class="pill yellow">prime-factors</span> <span class="pill purple">bigquery-basics</span>
+      <span class="pill yellow">prime-factorizer</span> <span class="pill purple">bigquery-basics</span>
     </p>
-    <p class="cap"><span class="kbd">gcloud storage cp -r my-skill gs://…-agy-skills/skills/</span></p>
+    <p class="cap"><span class="kbd">uv run tools/register_skills.py &amp;&amp; uv run tools/bootstrap_managed_agent.py</span></p>
   </section>
 
   <!-- 6 · DEMO -->
@@ -130,7 +132,7 @@ flowchart LR
     <p class="step">6 · Demo</p>
     <h1 data-id="m">Demo</h1>
     <p class="subtitle">Factor a number · reverse text · query BigQuery —
-      then upload a brand-new skill live and watch it just work.</p>
+      then register a brand-new skill live and watch it just work.</p>
   </section>
 
   <!-- 7 · LIMITATIONS -->
