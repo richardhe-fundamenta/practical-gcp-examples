@@ -1,0 +1,39 @@
+[project]
+name = "sandbox-runtime"
+version = "0"
+description = "Analytics-focused sandbox runtime image (FastAPI /execute server + data stack)"
+requires-python = ">=3.12"
+dependencies = [
+    # API server — required by main.py (the sandbox /execute, /upload, /download endpoints).
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+
+    # Core data
+    "numpy",
+    "pandas",
+    "polars",
+    "pyarrow",
+    "duckdb",
+
+    # Stats / ML
+    "scipy",
+    "scikit-learn",
+    "statsmodels",
+
+    # Charting (the agent often emits altair/vega JSON or matplotlib/plotly figures)
+    "matplotlib",
+    "seaborn",
+    "altair",
+    "plotly",
+
+    # IO / formatting
+    "openpyxl",
+    "tabulate",
+    "python-dateutil",
+]
+
+# Unpinned for simplicity (the image tag is the reproducibility boundary). For production,
+# pin or generate a lock (`uv pip compile pyproject.toml -o requirements.txt`).
+[tool.uv]
+package = false

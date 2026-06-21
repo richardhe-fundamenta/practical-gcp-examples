@@ -1,0 +1,14 @@
+name: "a2a-with-gke-sandbox"
+acli_version: "0.5.0"
+agent_directory: "app"
+region: "us-central1"
+base_template: "adk_a2a"
+generated_at: "2026-06-20T20:25:43.879871+00:00"
+language: "python"
+create_params:
+  deployment_target: "cloud_run"
+  session_type: "in_memory"
+  cicd_runner: "skip"
+  include_data_ingestion: false
+  is_a2a: true
+  datastore: "none"

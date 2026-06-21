@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A2A Agent with GKE Sandbox</title>
+
+  <!-- reveal.js (zero build, CDN). Chosen over Slidev so the deck is a single self-contained
+       HTML file you can just open in a browser to record. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+
+  <style>
+    :root{
+      --gcp-blue:#4285F4; --gcp-green:#34A853; --gcp-yellow:#FBBC04; --gcp-red:#EA4335;
+      --ink:#202124; --muted:#5f6368; --panel:#f1f3f4;
+    }
+    /* Base font is intentionally small so every em-based size scales down together and
+       content stays inside the 1280x720 slide canvas (no vertical overflow). */
+    .reveal { font-family: "Google Sans","Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); font-size:30px; }
+    .reveal h1,.reveal h2,.reveal h3 { font-weight:700; letter-spacing:-.5px; text-transform:none; color:var(--ink); }
+    .reveal h1 { font-size:1.8em; margin:.2em 0; }
+    .reveal h2 { font-size:1.15em; margin:.1em 0 .45em; }
+    .reveal h3 { font-size:.95em; }
+    .reveal section { text-align:left; }
+    .reveal .center { text-align:center; }
+    .reveal .muted { color:var(--muted); }
+    .reveal small.kicker { color:var(--gcp-blue); font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:.42em; display:block; margin-bottom:.2em; }
+    .reveal ul { width:100%; margin:0; }
+    .reveal li { margin:.22em 0; font-size:.78em; line-height:1.3; }
+    .reveal p { font-size:.82em; margin:.4em 0; }
+    .reveal strong { color:var(--gcp-blue); }
+    .reveal em { color:var(--gcp-green); font-style:normal; font-weight:600; }
+    .reveal pre { width:100%; box-shadow:none; font-size:.42em; margin:.5em 0; }
+    .reveal pre code { padding:10px 14px; max-height:none; }
+    .reveal code { border-radius:6px; }
+    .reveal blockquote { font-size:.8em; }
+
+    .tip { background:#fef7e0; border-left:6px solid var(--gcp-yellow); padding:18px 22px; border-radius:10px; font-size:.85em; }
+    .pill { display:inline-block; background:var(--panel); border-radius:999px; padding:.15em .7em; font-size:.7em; color:var(--muted); margin:.15em; }
+
+    /* ---- feature grid ---- */
+    .grid5 { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-top:12px; }
+    .card { background:#fff; border:1px solid #e0e0e0; border-radius:12px; padding:12px 10px; box-shadow:0 2px 10px rgba(0,0,0,.05);
+            transform:translateY(14px); opacity:0; transition:all .5s ease; }
+    .card.visible { transform:none; opacity:1; }
+    .card .n { font-size:1.3em; font-weight:800; color:var(--gcp-blue); }
+    .card h4 { margin:.2em 0; font-size:.62em; }
+    .card p { font-size:.5em; color:var(--muted); margin:0; line-height:1.25; }
+
+    /* ---- animated architecture flow ---- */
+    .flow { display:flex; align-items:stretch; justify-content:space-between; gap:0; margin-top:10px; }
+    .node { flex:1; background:#fff; border:2px solid #dadce0; border-radius:12px; padding:10px 8px; text-align:center;
+            position:relative; transition:all .45s ease; opacity:.35; }
+    .node.lit { opacity:1; border-color:var(--gcp-blue); box-shadow:0 0 0 4px rgba(66,133,244,.15); transform:translateY(-4px); }
+    .node .ico { font-size:1.7em; }
+    .node .t { font-weight:700; font-size:.62em; margin-top:4px; }
+    .node .s { font-size:.5em; color:var(--muted); }
+    .node.sandbox.lit { border-color:var(--gcp-green); box-shadow:0 0 0 4px rgba(52,168,83,.18); }
+    .node.gcs.lit     { border-color:var(--gcp-yellow); box-shadow:0 0 0 4px rgba(251,188,4,.22); }
+    .arrow { align-self:center; font-size:1.4em; color:#bdc1c6; padding:0 6px; transition:color .4s ease; }
+    .arrow.lit { color:var(--gcp-blue); animation:pulse 1s ease infinite; }
+    @keyframes pulse { 0%,100%{transform:translateX(0)} 50%{transform:translateX(4px)} }
+    .steplabel { margin-top:14px; min-height:1.4em; font-size:.6em; color:var(--ink); background:var(--panel); border-radius:10px; padding:9px 13px; line-height:1.35; }
+    .steplabel b { color:var(--gcp-blue); }
+
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:26px; }
+    .footer { position:fixed; bottom:8px; right:16px; font-size:12px; color:#bdc1c6; }
+    .reveal .arch-img { max-height:62vh; border-radius:12px; box-shadow:0 6px 30px rgba(0,0,0,.12); }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+  <!-- 0. TITLE -->
+  <section data-auto-animate>
+    <small class="kicker">Practical GCP</small>
+    <h1 data-id="title">A2A Agent with<br><span style="color:var(--gcp-green)">GKE Sandbox</span></h1>
+    <p class="muted">Let agent <em>skills</em> run untrusted code safely — and render the result back in Gemini Enterprise.</p>
+    <p style="margin-top:30px">
+      <span class="pill">Cloud Run · ADK · A2A</span>
+      <span class="pill">GKE Agent Sandbox · gVisor</span>
+      <span class="pill">A2UI in Gemini Enterprise</span>
+    </p>
+  </section>
+
+  <!-- TIP -->
+  <section>
+    <h2>One tip before we start</h2>
+    <div class="tip">
+      Building an <strong>ADK agent</strong>, implementing <strong>A2A</strong>, and deploying to
+      <strong>Cloud Run</strong>? Use Google's <strong>Agents CLI</strong>
+      (<code>google-agents-cli</code>). It scaffolds the agent, A2A wiring, Terraform, deploy and
+      publish flow — roughly <em>80% less time</em> than wiring it all by hand.
+    </div>
+    <pre><code class="language-bash" data-trim>uv tool install google-agents-cli
+agents-cli playground      # local
+agents-cli deploy          # to Cloud Run
+agents-cli publish gemini-enterprise --registration-type a2a ...</code></pre>
+  </section>
+
+  <!-- 1. WHY -->
+  <section>
+    <small class="kicker">1 · Why</small>
+    <h2>Skills are great — until they run code</h2>
+    <ul>
+      <li>Agents increasingly load <strong>skills</strong>: instructions + scripts, surfaced on demand.</li>
+      <li>The natural next step is letting them <em>execute code</em> — analysis, charts, transforms.</li>
+      <li>But that code is <strong>AI-generated / user-influenced</strong> → effectively untrusted.</li>
+      <li class="fragment">Running it beside your app, with your creds and network, is a non-starter for enterprise.</li>
+      <li class="fragment"><strong>Need:</strong> strong isolation · no ambient credentials · default-deny network ·
+        fast startup · disposable per run.</li>
+    </ul>
+  </section>
+
+  <!-- 2. WHAT -->
+  <section>
+    <small class="kicker">2 · What</small>
+    <h2>The most mature setup today</h2>
+    <div class="two">
+      <div>
+        <ul>
+          <li><strong>App stays on Cloud Run</strong> — where your A2A / Gemini Enterprise integration already lives.</li>
+          <li><strong>GKE is used <em>only</em> as a secure Agent Sandbox</strong> (Autopilot + the Agent Sandbox add-on).</li>
+          <li>You don't run workloads on GKE — you run <em>untrusted code</em> there.</li>
+        </ul>
+      </div>
+      <div>
+        <ul>
+          <li class="fragment">Clean split: <strong>app plane</strong> (Cloud Run) ⇄ <strong>execution plane</strong> (GKE).</li>
+          <li class="fragment">Bridged by an <strong>IAM-gated control-plane endpoint</strong> + an internal router.</li>
+          <li class="fragment">Minimal infra surface; nodes stay private.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. TOP 5 FEATURES -->
+  <section>
+    <small class="kicker">3 · GKE Agent Sandbox</small>
+    <h2>Top 5 features</h2>
+    <div class="grid5">
+      <div class="card fragment fade-in"><div class="n">1</div><h4>Kernel isolation</h4><p>Strong gVisor isolation for untrusted, LLM-generated code.</p></div>
+      <div class="card fragment fade-in"><div class="n">2</div><h4>Sub-second start</h4><p>Sandboxes in &lt;1s — far faster than normal Pod scheduling.</p></div>
+      <div class="card fragment fade-in"><div class="n">3</div><h4>Persistent identity</h4><p>Stable hostnames for single-replica workloads, no StatefulSet pain.</p></div>
+      <div class="card fragment fade-in"><div class="n">4</div><h4>Warm Pools</h4><p>Pre-warmed Pods assigned instantly instead of cold starts.</p></div>
+      <div class="card fragment fade-in"><div class="n">5</div><h4>Python SDK</h4><p>Request &amp; drive sandboxes straight from app logic.</p></div>
+    </div>
+    <p class="muted" style="font-size:.5em;margin-top:24px">Source: cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox</p>
+  </section>
+
+  <!-- 5. DEMO -->
+  <section data-background-color="#202124">
+    <small class="kicker" style="color:var(--gcp-yellow)">4 · Demo</small>
+    <h2 style="color:#fff">Live in Gemini Enterprise</h2>
+    <p style="color:#e8eaed">Upload <code>marketing_campaigns_sample.csv</code> and ask:</p>
+    <blockquote style="color:#fff;border-color:var(--gcp-green)">"Use the data-analysis skill: bar chart of total
+      spend_usd by campaign_name, ascending."</blockquote>
+    <p style="color:#9aa0a6">→ a card appears inline: a title, the model's <em style="color:var(--gcp-green)">thinking</em>, and the chart.</p>
+    <p class="fragment" style="color:#e8eaed;margin-top:18px">Then, <strong style="color:var(--gcp-yellow)">no re-upload</strong>:
+      <em style="color:var(--gcp-green)">"now make it a pie chart"</em> — the file <strong>persists across turns</strong>
+      (stashed in GCS by conversation, re-hydrated into each fresh sandbox).</p>
+  </section>
+
+  <!-- 6. ARCHITECTURE — ANIMATED FLOW -->
+  <section>
+    <small class="kicker">5 · Architecture</small>
+    <h2>End-to-end journey</h2>
+    <div class="flow">
+      <div class="node" id="n-ge"><div class="ico">💬</div><div class="t">Gemini Enterprise</div><div class="s">CSV upload + prompt</div></div>
+      <div class="arrow" id="a1">➜</div>
+      <div class="node" id="n-cr"><div class="ico">🏃</div><div class="t">Cloud Run</div><div class="s">ADK A2UI agent · run_code</div></div>
+      <div class="arrow" id="a2">➜</div>
+      <div class="node sandbox" id="n-sb"><div class="ico">📦</div><div class="t">GKE Sandbox</div><div class="s">gVisor · no net/creds</div></div>
+      <div class="arrow" id="a3">➜</div>
+      <div class="node gcs" id="n-gcs"><div class="ico">🗄️</div><div class="t">Cloud Storage</div><div class="s">image + signed URL</div></div>
+    </div>
+    <div class="steplabel" id="steplabel">Use <b>←/→</b> to step through the flow.</div>
+
+    <!-- step driver: each fragment advances the highlighted hop -->
+    <span class="fragment" data-step="1"></span>
+    <span class="fragment" data-step="2"></span>
+    <span class="fragment" data-step="3"></span>
+    <span class="fragment" data-step="4"></span>
+    <span class="fragment" data-step="5"></span>
+    <span class="fragment" data-step="6"></span>
+  </section>
+
+  <!-- 6b. NANO BANANA ARCHITECTURE IMAGE -->
+  <section class="center">
+    <small class="kicker">5 · Architecture</small>
+    <h2>Clean GCP diagram</h2>
+    <img class="arch-img" src="assets/architecture.png"
+         alt="GCP architecture"
+         onerror="this.style.display='none';document.getElementById('arch-fallback').style.display='block'">
+    <div id="arch-fallback" style="display:none" class="muted">
+      <p>Drop a <strong>nano banana</strong>–generated PNG at <code>docs/slides/assets/architecture.png</code>.</p>
+      <p style="font-size:.6em">The prompt is in <code>docs/slides/assets/README.md</code>.</p>
+    </div>
+  </section>
+
+  <!-- 6a. OBSERVABILITY — THE BIGQUERY TABLE -->
+  <section>
+    <small class="kicker">6 · Observability</small>
+    <h2>Every run, logged in BigQuery</h2>
+    <ul>
+      <li>GenAI logging auto-exports to <strong>BigQuery</strong> → the <code>completions_view</code>.</li>
+      <li><strong>One row per message part</strong>: who said what, every <code>tool_call</code> and its
+        <code>tool_response</code>, tokens, <code>finish_reasons</code> — exactly what the model saw and produced.</li>
+      <li class="fragment">Grouped by <code>conversation_id</code>; ordered by <code>timestamp · message_idx · part_idx</code>.</li>
+    </ul>
+    <pre><code class="language-sql" data-trim>SELECT timestamp, role, part_type, tool_name, content
+FROM `…a2a_with_gke_sandbox_telemetry.completions_view`
+ORDER BY timestamp DESC LIMIT 10;</code></pre>
+    <p class="muted fragment" style="font-size:.7em">Powerful — but reading a run as flat SQL rows is hard. So…</p>
+  </section>
+
+  <!-- 6b. OBSERVABILITY — SESSION VIEWER (DEMO) -->
+  <section data-background-color="#202124">
+    <small class="kicker" style="color:var(--gcp-yellow)">6 · Observability · demo</small>
+    <h2 style="color:#fff">Session Viewer</h2>
+    <div class="two">
+      <div>
+        <p style="color:#e8eaed">A tiny local GUI over that view — <code>tools/session-viewer/</code>:</p>
+        <ul style="color:#e8eaed">
+          <li>Pick a <strong style="color:var(--gcp-yellow)">historical session</strong>.</li>
+          <li>See the whole run on a <strong style="color:var(--gcp-yellow)">timeline</strong>:
+            user · thinking · tool calls + responses · errors.</li>
+          <li>Expand any event → raw <code>content</code> / <code>tool_args</code> / <code>tool_response</code>.</li>
+        </ul>
+      </div>
+      <div>
+        <pre style="background:#000"><code class="language-bash" data-trim>cd tools/session-viewer
+uv run streamlit run app.py
+# → http://localhost:8501</code></pre>
+        <p style="color:#9aa0a6;font-size:.7em">↳ live demo: open a recent session, walk the timeline,
+          click into the <code>run_code</code> and <code>send_a2ui</code> calls.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. SUMMARY + LIMITATIONS -->
+  <section>
+    <small class="kicker">7 · Summary</small>
+    <h2>Wrap-up &amp; limitations</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-size:.9em;color:var(--gcp-green)">The pattern</h3>
+        <ul style="font-size:.72em">
+          <li>App on <strong>Cloud Run</strong>.</li>
+          <li>Untrusted code in a <strong>GKE Agent Sandbox</strong> (gVisor, default-deny, disposable).</li>
+          <li>Results rendered back into <strong>Gemini Enterprise</strong> as A2UI cards.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-size:.9em;color:var(--gcp-red)">Know the edges (mid-2026)</h3>
+        <ul style="font-size:.72em">
+          <li>GE supports <strong>A2UI v0.8</strong> only.</li>
+          <li><strong>Streaming off</strong> — it doesn't yet render A2UI in GE; result is a task artifact.</li>
+          <li>So <strong>thinking is a text section just above the chart</strong>, not GE's thinking tab.</li>
+          <li>See the README <em>Gotchas</em> for the rest.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="center" style="margin-top:24px"><span class="pill">github: practical-gcp-examples / a2a-with-gke-sandbox</span></p>
+  </section>
+
+</div></div>
+<div class="footer">A2A · GKE Sandbox · Gemini Enterprise</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  const deck = new Reveal({
+    // 16:9 canvas; reveal scales it to the viewport. center+scale keep content inside bounds.
+    width:1280, height:720, margin:0.045, minScale:0.2, maxScale:1.6, center:true,
+    hash:true, slideNumber:'c/t', transition:'slide', controls:true, progress:true,
+    plugins:[ RevealHighlight, RevealNotes ]
+  });
+  deck.initialize();
+
+  // Animate the top-5 feature cards as their fragments reveal.
+  deck.on('fragmentshown', e => { (e.fragment.classList.contains('card')) && e.fragment.classList.add('visible'); });
+
+  // Drive the architecture flow: light up nodes/arrows + caption per step.
+  const FLOW = [
+    {lit:['n-ge'], a:[], text:'<b>1.</b> GE calls <code>message/send</code> — the CSV rides as a file part, the prompt as text.'},
+    {lit:['n-ge','n-cr'], a:['a1'], text:'<b>2–3.</b> The ADK agent loads the <code>data-analysis</code> skill and calls <code>run_code</code>.'},
+    {lit:['n-cr','n-sb'], a:['a2'], text:'<b>4–6.</b> A fresh gVisor pod runs <code>main.py</code> (pandas/matplotlib) → <code>chart.png</code> + stdout.'},
+    {lit:['n-cr','n-gcs'], a:['a3'], text:'<b>7–8.</b> The image is uploaded to GCS; a short-TTL <b>V4 signed URL</b> is minted.'},
+    {lit:['n-cr'], a:[], text:'<b>9–11.</b> Model builds the A2UI card (title · thinking · Image); a callback swaps the placeholder for the real URL.'},
+    {lit:['n-cr','n-ge'], a:['a1'], text:'<b>12–13.</b> Result is emitted in the <b>completed task’s artifacts</b>; GE renders the card on its poll.'},
+  ];
+  function applyFlow(step){
+    ['n-ge','n-cr','n-sb','n-gcs'].forEach(id=>document.getElementById(id)?.classList.remove('lit'));
+    ['a1','a2','a3'].forEach(id=>document.getElementById(id)?.classList.remove('lit'));
+    const lbl=document.getElementById('steplabel'); if(!lbl) return;
+    if(step<=0){ lbl.innerHTML='Use <b>←/→</b> to step through the flow.'; return; }
+    const f=FLOW[Math.min(step,FLOW.length)-1];
+    f.lit.forEach(id=>document.getElementById(id)?.classList.add('lit'));
+    f.a.forEach(id=>document.getElementById(id)?.classList.add('lit'));
+    lbl.innerHTML=f.text;
+  }
+  deck.on('fragmentshown', e=>{ const s=e.fragment.getAttribute('data-step'); if(s) applyFlow(parseInt(s,10)); });
+  deck.on('fragmenthidden', e=>{ const s=e.fragment.getAttribute('data-step'); if(s) applyFlow(parseInt(s,10)-1); });
+</script>
+</body>
+</html>

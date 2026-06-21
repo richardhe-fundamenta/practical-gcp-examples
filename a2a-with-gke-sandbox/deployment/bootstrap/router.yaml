@@ -1,0 +1,99 @@
+# ServiceAccount for the sandbox router pods.
+# The router resolves sandboxes by DNS name (no K8s API calls needed for basic routing).
+# A ServiceAccount is created here as a good practice and to allow future RBAC expansion
+# (e.g., if the router is extended to list/get Sandbox or Pod resources via the K8s API).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sandbox-router
+  namespace: default
+---
+# Internal LoadBalancer Service — changed from upstream ClusterIP.
+# Reason: Cloud Run (agent stack) reaches the router over Direct VPC egress.
+# An internal LB provides a stable RFC-1918 IP reachable from VPC without exposing
+# the router to the public internet.
+# NOTE (cut-B shortcut): ALLOW_UNAUTHENTICATED_ROUTER is enabled because the router
+# is only reachable on the internal VPC. Harden with ROUTER_AUTH_TOKEN in production.
+apiVersion: v1
+kind: Service
+metadata:
+  name: sandbox-router-svc
+  namespace: default
+  annotations:
+    networking.gke.io/load-balancer-type: "Internal"
+spec:
+  type: LoadBalancer
+  selector:
+    app: sandbox-router
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+---
+# Deployment to manage and run the router pods.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-router-deployment
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sandbox-router
+  template:
+    metadata:
+      labels:
+        app: sandbox-router
+    spec:
+      serviceAccountName: sandbox-router
+      # Spread pods across zones for HA
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: sandbox-router
+      containers:
+      - name: router
+        image: ${ROUTER_IMAGE}
+        env:
+        - name: PROXY_TIMEOUT_SECONDS
+          value: "180"
+        # CUT-B SHORTCUT: unauthenticated mode is safe here because the router is only
+        # reachable via the internal VPC LB (not public internet).
+        # TODO: harden by removing ALLOW_UNAUTHENTICATED_ROUTER and setting ROUTER_AUTH_TOKEN
+        # from a Secret when exposing beyond the VPC.
+        - name: ALLOW_UNAUTHENTICATED_ROUTER
+          value: "true"
+        # - name: ROUTER_AUTH_TOKEN
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: sandbox-router-auth
+        #       key: auth-token
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
