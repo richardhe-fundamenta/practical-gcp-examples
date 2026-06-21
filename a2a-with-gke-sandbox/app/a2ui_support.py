@@ -18,8 +18,10 @@ Pieces:
 from __future__ import annotations
 
 import builtins
+import json
 import logging
 import os
+import uuid
 
 from google.adk import models as _adk_models
 
@@ -150,20 +152,54 @@ def build_a2ui_toolset() -> SendA2uiToClientToolset:
     )
 
 
+def _uniquify_surface_ids(a2ui_json: str) -> str:
+    """Suffix every surfaceId with a per-call token so each chart renders as its OWN A2UI surface.
+
+    A2UI keys a render target by surfaceId; the model copies the example's `surfaceId: "report"`
+    verbatim on every turn, so Gemini Enterprise updates the SAME surface in place and the new
+    chart replaces the previous turn's. Rewriting to a unique id per call makes GE render a new
+    card each time and keeps earlier charts. Distinct surfaceIds within one call stay distinct
+    (same original -> same new), so beginRendering and surfaceUpdate still match.
+    """
+    try:
+        data = json.loads(a2ui_json)
+    except Exception:  # noqa: BLE001 - not valid JSON: leave it for the tool to validate/reject
+        return a2ui_json
+    suffix = uuid.uuid4().hex[:8]
+    mapping: dict[str, str] = {}
+
+    def walk(obj):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if k == "surfaceId" and isinstance(v, str):
+                    obj[k] = mapping.setdefault(v, f"{v}-{suffix}")
+                else:
+                    walk(v)
+        elif isinstance(obj, list):
+            for item in obj:
+                walk(item)
+
+    walk(data)
+    return json.dumps(data)
+
+
 def substitute_a2ui_urls(tool, args, tool_context):
-    """before_tool_callback: replace `{{chart:...}}` placeholder tokens in the model's a2ui_json
-    with the real signed URLs run_code stashed in state — so the model never has to copy a long
-    signed URL verbatim. Done here (not in the event converter) because tool-execution state is
-    live; the session snapshot the converter reads is not. Return None to run the tool normally.
+    """before_tool_callback for send_a2ui_json_to_client. Two rewrites of the model's a2ui_json:
+
+    1. Replace `{{chart:...}}` placeholder tokens with the real signed URLs run_code stashed in
+       state — so the model never has to copy a long signed URL verbatim. Done here (not in the
+       event converter) because tool-execution state is live; the converter's snapshot is not.
+    2. Give each call a unique surfaceId so Gemini Enterprise renders a new card per chart instead
+       of overwriting the previous turn's (see _uniquify_surface_ids).
     """
     if getattr(tool, "name", None) != A2UI_TOOL_NAME:
         return None
-    url_map = tool_context.state.get(URL_MAP_KEY) or {}
     raw = args.get("a2ui_json")
-    if url_map and isinstance(raw, str):
-        for token, url in url_map.items():
-            raw = raw.replace(token, url)
-        args["a2ui_json"] = raw
+    if not isinstance(raw, str):
+        return None
+    for token, url in (tool_context.state.get(URL_MAP_KEY) or {}).items():
+        raw = raw.replace(token, url)
+    args["a2ui_json"] = _uniquify_surface_ids(raw)
     return None
 
 
