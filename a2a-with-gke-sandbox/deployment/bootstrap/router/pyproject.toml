@@ -1,0 +1,15 @@
+[project]
+name = "sandbox-router"
+version = "0"
+description = "k8s-agent-sandbox router (proxies exec traffic to sandbox pods)"
+requires-python = ">=3.11"
+# Runtime deps only; pinned to the versions from the upstream requirements.txt.
+dependencies = [
+    "fastapi==0.136.1",
+    "httpx==0.28.1",
+    "uvicorn==0.46.0",
+]
+
+[tool.uv]
+# Not an installable package — just a single-module service run via uvicorn.
+package = false

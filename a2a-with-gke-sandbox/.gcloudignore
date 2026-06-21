@@ -1,0 +1,13 @@
+# Keep the Cloud Build upload (deploy-image.sh) lean. The Dockerfile only needs
+# pyproject.toml, uv.lock, README.md, app/, and skills/ — exclude everything else.
+.git/
+.venv/
+**/__pycache__/
+**/*.pyc
+.superpowers/
+deployment/
+docs/
+tests/
+.adk/
+.ruff_cache/
+.pytest_cache/
