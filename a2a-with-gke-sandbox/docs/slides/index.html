@@ -240,9 +240,25 @@ uv run streamlit run app.py
     </div>
   </section>
 
-  <!-- 9. SUMMARY + LIMITATIONS -->
+  <!-- 7. CODE WALKTHROUGH (live) -->
+  <section data-background-color="#202124">
+    <small class="kicker" style="color:var(--gcp-yellow)">7 · Code walkthrough</small>
+    <h2 style="color:#fff">Walk the important bits</h2>
+    <p style="color:#9aa0a6">↳ live in the editor — the few files that carry the whole flow (see the README):</p>
+    <ul style="color:#e8eaed">
+      <li><code>app/agent.py</code> — the <code>run_code</code> tool, skill loader, file hooks, the
+        placeholder→signed-URL + unique-surfaceId <code>before_tool_callback</code>.</li>
+      <li class="fragment"><code>app/a2ui_support.py</code> — the legacy executor that emits the result as a
+        <strong style="color:var(--gcp-yellow)">task artifact</strong>, the pinned v0.8 catalog, the A2UI converter.</li>
+      <li class="fragment"><code>app/sandbox/</code> — <code>client.py</code> (fresh sandbox per request),
+        <code>kube_auth.py</code>, <code>signed_url.py</code>, <code>session_files.py</code> (cross-turn uploads).</li>
+      <li class="fragment"><code>README.md</code> — the <strong style="color:var(--gcp-green)">End-to-end journey</strong> + <strong style="color:var(--gcp-green)">Gotchas</strong> sections tie it together.</li>
+    </ul>
+  </section>
+
+  <!-- 8. SUMMARY + LIMITATIONS -->
   <section>
-    <small class="kicker">7 · Summary</small>
+    <small class="kicker">8 · Summary</small>
     <h2>Wrap-up &amp; limitations</h2>
     <div class="two">
       <div>
