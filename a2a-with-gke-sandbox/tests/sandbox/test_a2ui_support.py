@@ -1,4 +1,5 @@
 import asyncio
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -41,6 +42,29 @@ def test_substitute_a2ui_urls_ignores_other_tools():
     ctx = SimpleNamespace(state={URL_MAP_KEY: {"{{chart:chart.png}}": "https://real/signed.png"}})
     substitute_a2ui_urls(tool, args, ctx)
     assert args["code"] == "print('{{chart:chart.png}}')"
+
+
+def test_substitute_a2ui_urls_makes_surface_id_unique_and_consistent():
+    # Same surfaceId across turns makes GE overwrite the prior chart; the callback must rewrite it
+    # to a unique id (consistently across beginRendering + surfaceUpdate within the call).
+    tool = SimpleNamespace(name="send_a2ui_json_to_client")
+    payload = (
+        '[{"beginRendering": {"surfaceId": "report", "root": "root"}},'
+        ' {"surfaceUpdate": {"surfaceId": "report", "components": []}}]'
+    )
+    args = {"a2ui_json": payload}
+    ctx = SimpleNamespace(state={})
+    substitute_a2ui_urls(tool, args, ctx)
+    out = json.loads(args["a2ui_json"])
+    sids = {out[0]["beginRendering"]["surfaceId"], out[1]["surfaceUpdate"]["surfaceId"]}
+    assert len(sids) == 1                       # both rewritten to the SAME new id
+    new_sid = sids.pop()
+    assert new_sid != "report" and new_sid.startswith("report-")   # ...but no longer the shared "report"
+
+    # A second call gets a different surfaceId (so it renders as a new card, not a replacement).
+    args2 = {"a2ui_json": payload}
+    substitute_a2ui_urls(tool, args2, ctx)
+    assert json.loads(args2["a2ui_json"])[0]["beginRendering"]["surfaceId"] != new_sid
 
 
 def test_event_converter_accepts_the_5_positional_call():
