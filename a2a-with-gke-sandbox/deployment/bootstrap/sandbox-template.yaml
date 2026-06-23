@@ -8,10 +8,24 @@ metadata:
 spec:
   podTemplate:
     spec:
-      # Untrusted code runs here — don't mount the namespace default ServiceAccount token.
-      automountServiceAccountToken: false
+      # The cluster's GKE-managed secure-sandbox-policy (ValidatingAdmissionPolicy, shipped by the
+      # agentsandbox addon) denies any Sandbox that doesn't meet this hardened contract — without it
+      # the claim never resolves and run_code times out. All of the following are required by it.
+      runtimeClassName: gvisor          # must run under gVisor
+      automountServiceAccountToken: false  # no K8s API access from untrusted code
+      securityContext:
+        runAsNonRoot: true              # image already runs as USER 1000
+      nodeSelector:
+        sandbox.gke.io/runtime: gvisor  # schedule onto gVisor nodes
+      tolerations:
+      - key: sandbox.gke.io/runtime     # tolerate the gVisor node taint
+        value: gvisor
+        effect: NoSchedule
       containers:
       - name: python-runtime
+        securityContext:
+          capabilities:
+            drop: ["ALL"]               # drop all Linux capabilities
         # Our analytics runtime, built + pushed to Artifact Registry by bootstrap.sh from
         # deployment/sandbox-runtime/ (private nodes pull from AR via Private Google Access).
         image: ${SANDBOX_IMAGE}
