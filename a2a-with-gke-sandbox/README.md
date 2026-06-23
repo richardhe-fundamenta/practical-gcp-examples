@@ -335,6 +335,17 @@ none of it is a knock on any product; it's just where the edges are today (mid-2
 - **`conversation_id` == A2A `contextId` == ADK `session_id`** — all the same string (ADK sets
   `session_id = request.context_id`), and GE keeps one across a conversation's turns. So it's the
   natural, stable key for per-conversation storage (and the grouping key in the BigQuery view).
+- **An over-size upload must be stripped from the *incoming message*, not just the model call.**
+  A big inline file (a 20 MB video → ~26 MB base64 request) hangs/500s in three stacked ways:
+  (1) the a2a SDK's default 10 MB `max_content_length` rejects the request with `-32600` *before*
+  the agent runs (GE shows a spinner) — raise it to Cloud Run's ~32 MB ceiling on
+  `A2AFastAPIApplication`; (2) a2a's `TaskManager` seeds `task.history` with the *incoming message
+  object* and echoes it in the response, so the blob blows past Cloud Run's ~32 MB **response**
+  limit ("Response size was too large") and 500s no matter what the executor emits — strip the
+  over-cap `FilePart`s from `context.message` **in place at the top of `_handle_request`, before
+  enqueuing any event** (`app/a2ui_support.py:_strip_oversized_parts`); (3) GE only renders a
+  *completed* task's artifact, so surface "file too large" as a final artifact, not a protocol
+  error. Cap: `MAX_UPLOAD_BYTES` (5 MB).
 
 **Registering with Gemini Enterprise**
 

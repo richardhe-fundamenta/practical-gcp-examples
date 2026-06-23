@@ -32,15 +32,32 @@ logger = logging.getLogger(__name__)
 if not hasattr(builtins, "models"):
     builtins.models = _adk_models
 
-from datetime import datetime, timezone  # noqa: E402
+from datetime import UTC, datetime  # noqa: E402
 
 from a2a.types import (  # noqa: E402
     AgentExtension,
     Artifact,
+    Part,
     TaskArtifactUpdateEvent,
     TaskState,
     TaskStatus,
     TaskStatusUpdateEvent,
+    TextPart,
+)
+from a2ui.a2a.extension import get_a2ui_agent_extension  # noqa: E402
+from a2ui.adk.a2a.part_converter import A2uiPartConverter  # noqa: E402
+from a2ui.adk.send_a2ui_to_client_toolset import (  # noqa: E402
+    SendA2uiToClientToolset,
+)
+from a2ui.basic_catalog.provider import BasicCatalog  # noqa: E402
+from a2ui.schema.common_modifiers import remove_strict_validation  # noqa: E402
+from a2ui.schema.constants import (  # noqa: E402
+    A2UI_TOOL_NAME,
+    VERSION_0_8,
+)
+from a2ui.schema.manager import A2uiSchemaManager  # noqa: E402
+from google.adk.a2a.converters.event_converter import (  # noqa: E402
+    convert_event_to_a2a_events,
 )
 from google.adk.a2a.converters.utils import _get_adk_metadata_key  # noqa: E402
 from google.adk.a2a.executor.a2a_agent_executor import (  # noqa: E402
@@ -62,26 +79,42 @@ from google.adk.platform import time as platform_time  # noqa: E402
 from google.adk.platform import uuid as platform_uuid  # noqa: E402
 from google.adk.utils.context_utils import Aclosing  # noqa: E402
 
-from google.adk.a2a.converters.event_converter import (  # noqa: E402
-    convert_event_to_a2a_events,
-)
-
-from a2ui.a2a.extension import get_a2ui_agent_extension  # noqa: E402
-from a2ui.adk.a2a.part_converter import A2uiPartConverter  # noqa: E402
-from a2ui.adk.send_a2ui_to_client_toolset import (  # noqa: E402
-    SendA2uiToClientToolset,
-)
-from a2ui.schema.constants import A2UI_TOOL_NAME  # noqa: E402
-from a2ui.basic_catalog.provider import BasicCatalog  # noqa: E402
-from a2ui.schema.common_modifiers import remove_strict_validation  # noqa: E402
-from a2ui.schema.constants import VERSION_0_8  # noqa: E402
-from a2ui.schema.manager import A2uiSchemaManager  # noqa: E402
-
 _ENABLED_KEY = "system:a2ui_enabled"
 _CATALOG_KEY = "system:a2ui_catalog"  # must match A2uiEventConverter's default catalog_key
 # Maps short placeholder tokens (e.g. "{{chart:ab12}}") -> real signed URLs. run_code writes
 # this; the event converter substitutes after the LLM so the model never transcribes the URL.
 URL_MAP_KEY = "a2ui_url_map"
+
+# Per-file cap on uploads. Enforced in the executor (_handle_request) *before* the model runs:
+# an over-cap inline file must never reach the model or get echoed back, since a multi-MB blob in
+# the A2A response makes it oversize and 500s. agent.py imports this for its own skip guard.
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
+
+def _strip_oversized_parts(message) -> list[tuple[str, int]]:
+    """Drop over-cap inline file parts from an incoming A2A message, in place.
+
+    Returns [(name, nbytes)] for what was removed. The incoming parts are a2a FileParts with
+    base64 `bytes`; an over-cap blob must be removed *before the framework stores the message*,
+    because a2a seeds the Task's history with this same object and echoes it in the response — a
+    multi-MB blob there blows past Cloud Run's response limit and 500s. Mutating in place (the
+    Task history holds the same reference) keeps it out of both the response and the model call.
+    """
+    removed: list[tuple[str, int]] = []
+    kept = []
+    for part in getattr(message, "parts", None) or []:
+        file = getattr(getattr(part, "root", None), "file", None)
+        b64 = getattr(file, "bytes", None) if file else None
+        if b64:
+            nbytes = (len(b64) * 3) // 4  # approx decoded size of the base64 payload
+            if nbytes > MAX_UPLOAD_BYTES:
+                removed.append((getattr(file, "name", None) or "upload", nbytes))
+                continue
+        kept.append(part)
+    if removed:
+        message.parts = kept
+    return removed
+
 
 # v0.8 schema manager over the bundled standard catalog (Image, Text, Card, ...).
 _schema_manager = A2uiSchemaManager(
@@ -163,7 +196,7 @@ def _uniquify_surface_ids(a2ui_json: str) -> str:
     """
     try:
         data = json.loads(a2ui_json)
-    except Exception:  # noqa: BLE001 - not valid JSON: leave it for the tool to validate/reject
+    except Exception:
         return a2ui_json
     suffix = uuid.uuid4().hex[:8]
     mapping: dict[str, str] = {}
@@ -223,7 +256,7 @@ class _A2uiEventConverter:
 
 
 def _now_iso() -> str:
-    return datetime.fromtimestamp(platform_time.get_time(), tz=timezone.utc).isoformat()
+    return datetime.fromtimestamp(platform_time.get_time(), tz=UTC).isoformat()
 
 
 class A2uiAgentExecutor(A2aAgentExecutor):
@@ -252,8 +285,50 @@ class A2uiAgentExecutor(A2aAgentExecutor):
             use_legacy=True,
         )
 
-    async def _handle_request(self, context, event_queue):  # noqa: C901 - mirrors ADK's flow
+    async def _handle_request(self, context, event_queue):
         runner = await self._resolve_runner()
+
+        # Reject over-cap uploads up front — BEFORE building the run request or enqueuing any event
+        # (the framework seeds the Task history from this same message object). Strip the blob so it
+        # never reaches the model or the response, then emit the "too large" text as the completed
+        # task's artifact — the path GE renders — so the user sees a message, not a hung spinner.
+        oversized = _strip_oversized_parts(context.message)
+        if oversized:
+            limit_mb = MAX_UPLOAD_BYTES // (1024 * 1024)
+            listed = ", ".join(f"{n} ({sz / (1024 * 1024):.1f} MB)" for n, sz in oversized)
+            text = (
+                f"⚠️ That file is too large to process ({listed}). The limit is {limit_mb} MB "
+                f"per file — please upload a smaller file and try again."
+            )
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    task_id=context.task_id,
+                    context_id=context.context_id,
+                    final=False,
+                    status=TaskStatus(state=TaskState.working, timestamp=_now_iso()),
+                )
+            )
+            await event_queue.enqueue_event(
+                TaskArtifactUpdateEvent(
+                    task_id=context.task_id,
+                    context_id=context.context_id,
+                    last_chunk=True,
+                    artifact=Artifact(
+                        artifact_id=platform_uuid.new_uuid(),
+                        parts=[Part(root=TextPart(text=text))],
+                    ),
+                )
+            )
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    task_id=context.task_id,
+                    context_id=context.context_id,
+                    final=True,
+                    status=TaskStatus(state=TaskState.completed, timestamp=_now_iso()),
+                )
+            )
+            return
+
         run_request = self._config.request_converter(context, self._config.a2a_part_converter)
         executor_context = ExecutorContext(
             app_name=runner.app_name,

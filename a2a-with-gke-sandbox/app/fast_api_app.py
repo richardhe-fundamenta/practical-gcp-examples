@@ -94,7 +94,15 @@ async def build_dynamic_agent_card() -> AgentCard:
 @asynccontextmanager
 async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
     agent_card = await build_dynamic_agent_card()
-    a2a_app = A2AFastAPIApplication(agent_card=agent_card, http_handler=request_handler)
+    # The a2a SDK defaults to a 10 MB request cap and rejects larger payloads at the transport
+    # layer with JSON-RPC -32600 *before* the agent runs — GE doesn't surface that, so the upload
+    # just hangs. Raise it to Cloud Run's ~32 MB request ceiling so over-limit uploads reach the
+    # agent, which then replies with a clear "file too large" message (see app/agent.py).
+    a2a_app = A2AFastAPIApplication(
+        agent_card=agent_card,
+        http_handler=request_handler,
+        max_content_length=32 * 1024 * 1024,
+    )
     a2a_app.add_routes_to_app(
         app_instance,
         agent_card_url=f"{A2A_RPC_PATH}{AGENT_CARD_WELL_KNOWN_PATH}",
