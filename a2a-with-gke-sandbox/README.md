@@ -346,6 +346,17 @@ none of it is a knock on any product; it's just where the edges are today (mid-2
 
 **GKE Agent Sandbox / runtime**
 
+- **The managed addon enforces a hardened-sandbox admission policy (≥ v1.35.6).** A GKE upgrade
+  of the `agentsandbox` addon ships a `secure-sandbox-policy` ValidatingAdmissionPolicy that
+  *denies* any Sandbox not meeting a full security contract — `runtimeClassName: gvisor`,
+  `runAsNonRoot: true`, container `capabilities.drop: ["ALL"]`, gVisor `nodeSelector` +
+  toleration, resource limits, `automountServiceAccountToken: false`, etc. If the `SandboxTemplate`
+  is missing any of these, the claim never resolves (`Could not resolve sandbox name … within 180
+  seconds`), `run_code` retries to the Cloud Run 300s limit, and requests 504. The symptom looks
+  like "suddenly slow" because it's triggered by an *automatic addon upgrade*, not a code change.
+  The policy is addon-managed (`addonmanager.kubernetes.io/mode: Reconcile`) so you can't delete
+  it — the template must comply (see `deployment/bootstrap/sandbox-template.yaml`). Inspect the
+  live rules with `kubectl get validatingadmissionpolicy secure-sandbox-policy -o yaml`.
 - **Private nodes can't pull from `registry.k8s.io`.** The stock sandbox runtime image times out
   on a private cluster, so we **build our own analytics runtime** (uv + pandas/numpy/matplotlib/…)
   into Artifact Registry and point the `SandboxTemplate` at it.
