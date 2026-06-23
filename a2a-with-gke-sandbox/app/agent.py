@@ -26,6 +26,7 @@ from google.adk.tools.skill_toolset import SkillToolset
 from google.genai import types
 
 from app.a2ui_support import (
+    MAX_UPLOAD_BYTES,
     URL_MAP_KEY,
     build_a2ui_toolset,
     setup_a2ui_state,
@@ -49,31 +50,23 @@ os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
 
-# Per-file cap on uploads pushed into the sandbox (A2A inline bytes are base64 in the
-# request, so they're already bounded; this guards against shipping very large blobs).
-_MAX_UPLOAD_BYTES = 5 * 1024 * 1024
-
-
 def _part_filename(index, blob) -> str:
     return getattr(blob, "display_name", None) or f"upload_{index}"
 
 
 def _uploaded_files(content) -> list[tuple[str, bytes]]:
-    """Return (name, bytes) for each inline_data file in a user Content.
+    """Return (name, bytes) for each within-cap inline_data file in a user Content.
 
-    Raises ValueError if any file exceeds the size cap.
+    Over-cap uploads are rejected upstream in the A2A executor (a2ui_support) before the model
+    runs, so they never get here; we skip any that slip through (e.g. a rehydrated file) rather
+    than raise, so a single bad file can't crash the run.
     """
     out: list[tuple[str, bytes]] = []
     for i, part in enumerate((content.parts if content else None) or []):
         blob = getattr(part, "inline_data", None)
         data = getattr(blob, "data", None) if blob else None
-        if not data:
+        if not data or len(data) > MAX_UPLOAD_BYTES:
             continue
-        if len(data) > _MAX_UPLOAD_BYTES:
-            raise ValueError(
-                f"uploaded file {_part_filename(i, blob)!r} exceeds "
-                f"{_MAX_UPLOAD_BYTES} bytes"
-            )
         out.append((_part_filename(i, blob), data))
     return out
 
