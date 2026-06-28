@@ -1,0 +1,15 @@
+name: "local-recipe-planner"
+acli_version: "0.6.1"
+agent_directory: "app"
+region: "us-central1"
+base_template: "adk"
+generated_at: "2026-06-28T21:18:27.628986+00:00"
+language: "python"
+create_params:
+  deployment_target: "cloud_run"
+  session_type: "in_memory"
+  cicd_runner: "google_cloud_build"
+  include_data_ingestion: false
+  is_a2a: true
+  datastore: "none"
+  agent_guidance_filename: "AGENTS.md"

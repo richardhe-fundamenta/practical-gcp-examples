@@ -1,0 +1,59 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "mapo_tofu_case",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Fridge contains: silken tofu, minced beef, garlic, ginger. Dietary goals: authentic Sichuan taste, spicy. City: London. Suggest recipes, list missing minor ingredients, and retrieve their London prices."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "kung_pao_chicken_case",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Fridge contains: chicken breasts, spring onions, peanut butter. Dietary goals: authentic Kung Pao Chicken style, sweet and savory. City: London. Suggest recipes, list missing minor ingredients, and retrieve their London prices."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "tomato_egg_case",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Fridge contains: large free range eggs, cherry tomatoes. Dietary goals: authentic Chinese homestyle comfort food. City: London. Suggest recipes, list missing minor ingredients, and retrieve their London prices."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "steamed_seabass_case",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Fridge contains: sea bass fillets, ginger, spring onions. Dietary goals: authentic Cantonese style, steaming method, fresh and light. City: London. Suggest recipes, list missing minor ingredients, and retrieve their London prices."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "red_braised_pork_case",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Fridge contains: pork belly, garlic, ginger. Dietary goals: authentic Chinese red braised pork (Hong Shao Rou). City: London. Suggest recipes, list missing minor ingredients, and retrieve their London prices."
+          }
+        ]
+      }
+    }
+  ]
+}

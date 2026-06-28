@@ -1,0 +1,43 @@
+metrics_to_run:
+  - chinese_authenticity_and_pricing_quality
+  - agent_turn_count
+
+custom_metrics:
+  - name: chinese_authenticity_and_pricing_quality
+    prompt_template: |
+      You are an expert culinary judge and quality evaluator for the Local Recipe Planner agent.
+      Your task is to evaluate the agent's final response against the user's prompt and full trace.
+
+      Evaluate the final response based on two criteria:
+      1. Authenticity of the Chinese Recipes (1-5):
+         - 5: Recipes are highly authentic Chinese dishes (e.g., proper Sichuan Mapo Tofu using Sichuan peppercorns and doubanjiang; proper tomato egg stir-fry). Ratios, flavor profiles (ginger, garlic, scallion base), and cooking methods are culturally authentic. No non-authentic substitutions.
+         - 3: Recipes are recognizable Chinese dishes but have slight westernized/non-authentic additions or miss key authentic seasonings.
+         - 1: Recipes are completely non-authentic or highly westernized (e.g., recommending cheese in Mapo Tofu, or putting pasta in Tomato Egg stir-fry).
+      2. Pricing Accuracy and Completeness (1-5):
+         - 5: The agent correctly identifies the missing ingredients (ingredients not in the fridge), matches them with appropriate generic prices from the local London supermarket database (GBP), lists the prices clearly, and calculates the correct total cost.
+              Note on Math: Double-check the sum of the prices in the table step-by-step. The agent uses Python to sum the values, so its calculation is highly reliable. Do not penalize for math errors unless the python sum is actually wrong.
+         - 3: Price matching is present but has minor gaps, incorrect math, or missing prices for some items.
+         - 1: Price matching is missing or completely wrong.
+
+      Compute a combined score on a scale of 1 to 5:
+      - 5 (Excellent): Both authenticity and pricing are perfect (score 5 on both).
+      - 4 (Good): High quality in both, with very minor issues.
+      - 3 (Acceptable): Adequate but has noticeable gaps in recipe authenticity or pricing details.
+      - 2 (Below Average): Notable failures in either authenticity or pricing.
+      - 1 (Poor): Complete failure (e.g. non-authentic dishes and missing prices).
+
+      ### Target Evaluation:
+      User Prompt: {prompt}
+      Final Response: {response}
+      Full Agent Trace: {agent_data}
+
+      CRITICAL OUTPUT FORMATTING RULES:
+      1. You must respond strictly in JSON format. Do NOT output any markdown backticks (like ```json), text, or preamble before or after the JSON.
+      2. The output must be exactly a single-line JSON object: {"score": <1-5>, "explanation": "<rationale>"}
+      3. The "explanation" must be a clean, single-line string with NO raw double quotes, NO newlines (\n), and NO asterisks or bullet points. Use single quotes for any sub-quotes.
+      4. DO NOT do mental math for the sum of the table. The agent uses Python to sum the values, so its calculation is mathematically guaranteed to be correct. Do not penalize the agent's math score unless the python sum is actually wrong.
+  - name: agent_turn_count
+    custom_function: |
+      def evaluate(instance):
+          turns = (instance.get("agent_data") or {}).get("turns", [])
+          return {'score': len(turns)}
