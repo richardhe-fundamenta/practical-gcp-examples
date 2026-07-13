@@ -1,0 +1,60 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "fibonacci_calculation",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Calculate the 12th Fibonacci number using Python."}]
+      }
+    },
+    {
+      "eval_case_id": "list_sorting",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Sort the list [4, 1, 9, 3, 5] in descending order using Python."}]
+      }
+    },
+    {
+      "eval_case_id": "network_blocked_test",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Try to download the home page of http://example.com/ using python without allowing network access."}]
+      }
+    },
+    {
+      "eval_case_id": "detached_background_test",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Create a Python script at '/tmp/long_running.py' that writes 'started' to a log file and sleeps for 10 minutes. Then start a background detached sandbox named 'my-web-server' running this script."}]
+      }
+    },
+    {
+      "eval_case_id": "filesystem_snapshot_test",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Start a background detached sandbox named 'my-sandbox' with write access enabled, write 'hi' to '/tmp/hello.txt', and sleep for 1 hour. Then create a filesystem tar snapshot of the 'my-sandbox' sandbox and save it to '/sessions/default_session/foo.tar'."}]
+      }
+    },
+    {
+      "eval_case_id": "bind_mount_test",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Create host directory '/sessions/default_session/my-volume' and write 'read' to 'readwrite.txt'. Mount it at '/mnt/my-mount' inside the sandbox, read it, and then write 'write' to it from the sandbox."}]
+      }
+    },
+    {
+      "eval_case_id": "readonly_mount_test",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Mount host directory '/sessions/default_session/my-volume' to '/mnt/my-mount' inside the sandbox with readonly attribute, and try writing to '/mnt/my-mount/hello.txt'."}]
+      }
+    },
+    {
+      "eval_case_id": "log_routing_test",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Run a python script that writes 'hello-stdout' to standard output and 'hello-stderr' to standard error."}]
+      }
+    }
+  ]
+}
