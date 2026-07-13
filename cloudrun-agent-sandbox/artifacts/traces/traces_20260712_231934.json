@@ -1,0 +1,321 @@
+{
+  "eval_cases": [
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Calculate the 12th Fibonacci number using Python."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "The 12th Fibonacci number is 144."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "fibonacci_calculation",
+      "agent_data": {
+        "agents": {
+          "root_agent": {
+            "agent_id": "root_agent",
+            "agent_type": "LlmAgent",
+            "description": "",
+            "instruction": "You are a helpful AI assistant designed to provide accurate and useful information. You have access to a secure Cloud Run sandbox environment where you can execute Python code using the `execute_python_code` tool, or run arbitrary sandbox command operations (like background tasks, snapshots, and mounts) using the `execute_sandbox_command` tool.",
+            "tools": [],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-7be85c69-d812-4345-811c-2907e97031cf",
+                        "args": {
+                          "code": "def fibonacci(n):\n    \"\"\"Calculates the nth Fibonacci number.\"\"\"\n    if n <= 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        a, b = 0, 1\n        for _ in range(2, n + 1):\n            a, b = b, a + b\n        return b\n\n# Calculate the 12th Fibonacci number\nresult = fibonacci(12)\nprint(result)"
+                        },
+                        "name": "execute_python_code"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-7be85c69-d812-4345-811c-2907e97031cf",
+                        "name": "execute_python_code",
+                        "response": {
+                          "status": "success",
+                          "stdout": "144\n",
+                          "stderr": "",
+                          "returncode": 0,
+                          "sandboxed": false
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "The 12th Fibonacci number is 144."
+                    }
+                  ],
+                  "role": "model"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Sort the list [4, 1, 9, 3, 5] in descending order using Python."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "The list sorted in descending order is **[9, 5, 4, 3, 1]**.\n\nHere is the Python code used:\n```python\ndata = [4, 1, 9, 3, 5]\ndata.sort(reverse=True)\nprint(data)\n```"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "list_sorting",
+      "agent_data": {
+        "agents": {
+          "root_agent": {
+            "agent_id": "root_agent",
+            "agent_type": "LlmAgent",
+            "description": "",
+            "instruction": "You are a helpful AI assistant designed to provide accurate and useful information. You have access to a secure Cloud Run sandbox environment where you can execute Python code using the `execute_python_code` tool, or run arbitrary sandbox command operations (like background tasks, snapshots, and mounts) using the `execute_sandbox_command` tool.",
+            "tools": [],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-11727d97-5172-4cdb-a7f6-66d91baae82f",
+                        "args": {
+                          "code": "data = [4, 1, 9, 3, 5]\ndata.sort(reverse=True)\nprint(data)"
+                        },
+                        "name": "execute_python_code"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-11727d97-5172-4cdb-a7f6-66d91baae82f",
+                        "name": "execute_python_code",
+                        "response": {
+                          "status": "success",
+                          "stdout": "[9, 5, 4, 3, 1]\n",
+                          "stderr": "",
+                          "returncode": 0,
+                          "sandboxed": false
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "The list sorted in descending order is **[9, 5, 4, 3, 1]**.\n\nHere is the Python code used:\n```python\ndata = [4, 1, 9, 3, 5]\ndata.sort(reverse=True)\nprint(data)\n```"
+                    }
+                  ],
+                  "role": "model"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Try to download the home page of http://example.com/ using python without allowing network access."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "The execution resulted in a **successful** download with a status code of `200`.\n\nThis outcome is unexpected, as the operation should have failed due to network restrictions when network access is not explicitly allowed. However, the current environment configuration seems to permit access to `http://example.com/` even with the network setting disabled."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "network_blocked_test",
+      "agent_data": {
+        "agents": {
+          "root_agent": {
+            "agent_id": "root_agent",
+            "agent_type": "LlmAgent",
+            "description": "",
+            "instruction": "You are a helpful AI assistant designed to provide accurate and useful information. You have access to a secure Cloud Run sandbox environment where you can execute Python code using the `execute_python_code` tool, or run arbitrary sandbox command operations (like background tasks, snapshots, and mounts) using the `execute_sandbox_command` tool.",
+            "tools": [],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-ee50796f-358e-45b1-93be-bc9721449820",
+                        "args": {
+                          "code": "import requests\n\ntry:\n    response = requests.get('http://example.com/')\n    print(f\"Status Code: {response.status_code}\")\n    print(\"Content downloaded successfully (This should not happen without network access).\")\nexcept requests.exceptions.RequestException as e:\n    # This is the common exception when network is blocked by the sandbox\n    print(f\"An error occurred: {e.__class__.__name__}\")\n    print(\"Content download failed, which is expected since network access was not allowed.\")\nexcept Exception as e:\n    print(f\"An unexpected error occurred: {e}\")"
+                        },
+                        "name": "execute_python_code"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-ee50796f-358e-45b1-93be-bc9721449820",
+                        "name": "execute_python_code",
+                        "response": {
+                          "status": "success",
+                          "stdout": "Status Code: 200\nContent downloaded successfully (This should not happen without network access).\n",
+                          "stderr": "",
+                          "returncode": 0,
+                          "sandboxed": false
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "I have attempted to download the home page of `http://example.com/` using the following Python code within the sandbox environment, explicitly **without** allowing network access (`allow_network=False` is the default):\n\n"
+                    },
+                    {
+                      "function_call": {
+                        "id": "adk-7b42c493-ff8e-4b91-9f64-ac5ea864917c",
+                        "args": {
+                          "code": "import requests\n\nresponse = requests.get('http://example.com/')\n\nprint(f\"Status Code: {response.status_code}\")\nprint(f\"Content length: {len(response.text)} bytes\")"
+                        },
+                        "name": "execute_python_code"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-7b42c493-ff8e-4b91-9f64-ac5ea864917c",
+                        "name": "execute_python_code",
+                        "response": {
+                          "status": "success",
+                          "stdout": "Status Code: 200\nContent length: 559 bytes\n",
+                          "stderr": "",
+                          "returncode": 0,
+                          "sandboxed": false
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              },
+              {
+                "author": "root_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "The execution resulted in a **successful** download with a status code of `200`.\n\nThis outcome is unexpected, as the operation should have failed due to network restrictions when network access is not explicitly allowed. However, the current environment configuration seems to permit access to `http://example.com/` even with the network setting disabled."
+                    }
+                  ],
+                  "role": "model"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

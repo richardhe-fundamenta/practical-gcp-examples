@@ -1,53 +1,80 @@
-# Task 1 Report: Secure Python Sandbox Execution Tool
+# Task 1: Stream Routing in execute_python_code Report
 
-## Progress and Results
+## What was implemented
+- Updated `execute_python_code` in `app/tools.py` to route `stdout` and `stderr` streams directly to the host container's `sys.stdout` and `sys.stderr` immediately after the sandboxed command execution (`subprocess.run`) completes, and flushed both streams.
+- Added a unit test `test_execute_python_code_routes_streams` in `tests/unit/test_tools.py` to verify that standard output and standard error from the executed python code are correctly routed to the host's `sys.stdout` and `sys.stderr` respectively.
 
-### Red-Green-Refactor Cycle
+## What was tested and test results
+- Unit tests: All 9 unit tests passed successfully.
+- Select Integration tests: Server e2e routes that do not call the LLM (`test_agent_card` and `test_collect_feedback`) passed successfully (other integration tests require an active Gemini API key / Google Cloud credentials for Vertex AI client calls).
 
-#### 1. Failing Tests Written
-We created [test_tools.py](file:///Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/tests/unit/test_tools.py) containing:
-- `test_execute_python_code_local_fallback`: Tests the fallback execution path when the sandbox launcher is not present.
-- `test_execute_python_code_with_sandbox`: Verifies command structure when `sandbox` is available.
-- `test_execute_python_code_with_sandbox_and_network`: Verifies egress flags are appended correctly when network access is enabled.
+## TDD Evidence
 
-#### 2. Test Failure Verification
-We ran the test suite using `uv run pytest tests/unit/test_tools.py -v`.
-The test suite failed correctly as expected:
+### RED Phase (Failing Test)
+Command: `uv run pytest tests/unit/test_tools.py -k test_execute_python_code_routes_streams -v`
+
+Failing output:
 ```
-E   ModuleNotFoundError: No module named 'app.tools'
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0 -- /Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox
+configfile: pyproject.toml
+plugins: anyio-4.14.1, asyncio-1.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=session, asyncio_default_test_loop_scope=function
+collecting ... collected 8 items / 7 deselected / 1 selected
+
+tests/unit/test_tools.py::test_execute_python_code_routes_streams FAILED [100%]
+
+=================================== FAILURES ===================================
+___________________ test_execute_python_code_routes_streams ____________________
+
+    def test_execute_python_code_routes_streams() -> None:
+        import sys
+        code = "import sys; print('hello-stdout'); print('hello-stderr', file=sys.stderr)"
+        with patch.object(sys.stdout, 'write') as mock_stdout_write, \
+             patch.object(sys.stderr, 'write') as mock_stderr_write:
+            result = execute_python_code(code)
+            assert result["status"] == "success"
+            assert "hello-stdout" in result["stdout"]
+            assert "hello-stderr" in result["stderr"]
+            # Verify sys.stdout and sys.stderr received the output
+>           mock_stdout_write.assert_any_call("hello-stdout\n")
+
+tests/unit/test_tools.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+...
+E           AssertionError: write('hello-stdout\n') call not found
 ```
 
-#### 3. Minimal Implementation
-We implemented [tools.py](file:///Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/app/tools.py) which:
-- Dynamically writes Python code snippets to a temporary file.
-- Checks if the `sandbox` utility is available using `shutil.which`.
-- Automatically selects the sandbox CLI (`sandbox do`) or falls back to local execution.
-- Configures egress control (`--allow-egress`) when `allow_network=True`.
-- Captures output, execution status, exit code, and handles exceptions cleanly while cleaning up the temp file in a `finally` block.
+### GREEN Phase (Passing Test)
+Command: `uv run pytest tests/unit/test_tools.py -k test_execute_python_code_routes_streams -v`
 
-#### 4. Test Success Verification
-We re-ran the test suite using `uv run pytest tests/unit/test_tools.py -v`.
-All tests passed successfully:
+Passing output:
 ```
-tests/unit/test_tools.py::test_execute_python_code_local_fallback PASSED
-tests/unit/test_tools.py::test_execute_python_code_with_sandbox PASSED
-tests/unit/test_tools.py::test_execute_python_code_with_sandbox_and_network PASSED
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0 -- /Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox
+configfile: pyproject.toml
+plugins: anyio-4.14.1, asyncio-1.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=session, asyncio_default_test_loop_scope=function
+collecting ... collected 8 items / 7 deselected / 1 selected
+
+tests/unit/test_tools.py::test_execute_python_code_routes_streams PASSED [100%]
+
+=============================== warnings summary ===============================
+...
+================= 1 passed, 7 deselected, 4 warnings in 0.68s ==================
 ```
 
-### Git Commit
-Staged and committed both files:
-- **Files**: `app/tools.py`, `tests/unit/test_tools.py`
-- **Commit Message**: `feat: add secure python execution tool with Cloud Run Sandbox support`
-- **Commit Hash**: `349e876e58f5bc34a5bb3b917bd959cea9ee98c9`
+## Files changed
+- [app/tools.py](file:///Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/app/tools.py)
+- [tests/unit/test_tools.py](file:///Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/tests/unit/test_tools.py)
 
-## Concerns
-- None. The implementation and local fallbacks behave exactly as specified.
+## Self-review findings
+- The stream routing implementation successfully mimics normal stdout/stderr behavior in Cloud Run containers.
+- The unit test accurately captures and validates stream routing behavior without regressions.
 
-## Refinements and Fixes Applied
-
-We applied several refinements and fixes based on findings:
-1. **System-Independent Fallback Testing**: In [test_tools.py](file:///Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/tests/unit/test_tools.py), mocked `shutil.which` to return `None` in `test_execute_python_code_local_fallback` to ensure it is isolated and always tests the local fallback behavior regardless of whether a sandbox is installed on the host system.
-2. **Proper Tempfile Cleanup**: In [tools.py](file:///Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/app/tools.py), moved the temporary file creation and writing inside the `try` block to guarantee cleanup via the `finally` block even if the file write fails.
-3. **Clean Code & Variable Initialization**: Initialized `sandbox_available = False` and `temp_file_path = None` at the top of `execute_python_code` in [tools.py](file:///Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/app/tools.py), simplifying exception-handling return values and `finally` block logic.
-4. **Linter and Type-Checking Compliancy**: Fixed type annotations (`tool_context: ToolContext | None = None`) and formatting/unused imports to pass `agents-cli lint` and type checks successfully.
-5. **Prevent Tempfile Leak on Write Failure**: In [tools.py](file:///Users/rocketech/repos/practical-gcp-examples/cloudrun-agent-sandbox/app/tools.py), assigned `temp_file_path = f.name` before `f.write(code)`. This guarantees that if the write operation raises an exception, the file's path is already stored in `temp_file_path` and thus properly cleaned up/deleted in the `finally` block.
+## Issues or concerns
+- None.
