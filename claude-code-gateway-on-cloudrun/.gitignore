@@ -1,0 +1,5 @@
+# Local prebuilt gateway binary (copied into Docker image)
+/claude
+
+# Local gateway config (contains OAuth client secrets and URLs)
+/gateway.yaml
