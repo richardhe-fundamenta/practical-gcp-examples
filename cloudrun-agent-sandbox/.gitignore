@@ -207,3 +207,7 @@ tools/a2a-inspector/
 *.pem
 *-key.json
 credentials*.json
+
+# Git worktrees
+.worktrees/
+
