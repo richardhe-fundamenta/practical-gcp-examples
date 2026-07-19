@@ -13,10 +13,10 @@ AI agents designed for data analysis, complex math, or file processing frequentl
 - Unauthorized access to internal VPC networks or databases.
 
 ### The Solution: Cloud Run Sandboxes
-This project implements a secure sandbox execution pattern utilizing Google Cloud's **Cloud Run Sandbox** feature (available in public preview). 
+This project implements a secure sandbox execution pattern utilizing Google Cloud's **Cloud Run Sandbox** feature.
 - **Isolation by Default:** Subprocesses run inside a zero-trust sandbox that has no access to the host container's environment variables, secrets, or GCP Metadata server.
-- **Egress Restriction:** Network access is blocked by default, protecting internal services. Outbound access can be selectively enabled for specific tasks.
-- **System-Independent Fallback:** To support a seamless developer experience (TDD), the system automatically detects if the `sandbox` utility is available. If missing (local development/testing), it falls back to standard execution with a warning. In production, it enforces strict sandbox requirements.
+- **Forced Egress Isolation:** Network access is blocked unconditionally, protecting internal services and preventing data exfiltration.
+- **Exclusive Sandbox Targeting:** All local execution fallback simulation code has been removed. The tools now target Cloud Run Sandbox execution exclusively via the `sandbox` binary, throwing a `FileNotFoundError` if the utility is not found on the path or standard locations.
 
 ---
 
@@ -31,35 +31,34 @@ sequenceDiagram
     FastAPI App->>ADK Agent: Forward conversation
     ADK Agent->>Gemini Model: Prompt for decision
     Gemini Model-->>ADK Agent: Generate Python code & request Tool call
-    ADK Agent->>execute_python_code Tool: Call with generated code
-    Note over execute_python_code Tool: Write code to /tmp/script.py
-    alt Is Local Dev?
-        execute_python_code Tool->>Local Host: subprocess.run([sys.executable, '/tmp/script.py'])
-    else Is Production (Cloud Run)?
-        execute_python_code Tool->>Cloud Run Sandbox: subprocess.run(['sandbox', 'do', '--', 'python3', '/tmp/script.py'])
-    end
-    Cloud Run Sandbox-->>execute_python_code Tool: Return stdout / stderr / returncode
-    execute_python_code Tool-->>ADK Agent: Return execution results dict
-    ADK Agent->>Gemini Model: Send results for summary
-    Gemini Model-->>ADK Agent: Summarize answer
-    ADK Agent-->>FastAPI App: Return final response
-    FastAPI App-->>User: Display response
+    ADK Agent->>run_python_script Tool: Call with generated code
+    Note over run_python_script Tool: Write code to temporary file (/tmp/tmp_code.py)
+    run_python_script Tool->>Sandbox Launcher: Invoke subprocess ['sandbox', 'do', '--', '/usr/local/bin/python3', '/tmp/tmp_code.py']
+    Sandbox Launcher->>Cloud Run Sandbox: Spawn isolated container namespace
+    Cloud Run Sandbox-->>Sandbox Launcher: Output stream / returncode
+    Sandbox Launcher-->>run_python_script Tool: Return execution results
+    run_python_script Tool-->>ADK Agent: Return standardized result dict
+    ADK Agent->>Gemini Model: Send results for final summarization
+    Gemini Model-->>ADK Agent: Return summarized output
+    ADK Agent-->>FastAPI App: Send final response
+    FastAPI App-->>User: Render response
 ```
 
 ### Security Boundaries
-- **Egress Isolation:** The sandbox blocks all outbound requests unless deployed with `--sandbox-launcher` and executed using `sandbox do --allow-egress`.
+- **Forced Egress Isolation:** The sandbox blocks all outbound network requests unconditionally. To prevent data exfiltration, the backend hardcodes network access to disabled and blocks egress traffic entirely.
 - **Credential Protection:** Any attempt to request `http://metadata.google.internal` inside the sandbox fails with a connection error.
-- **Ephemeral Filesystem:** Writes are written to an ephemeral memory overlay discarded immediately upon process termination.
+- **Ephemeral Filesystem:** Writes are written to an ephemeral memory overlay discarded immediately upon process termination. To save files permanently, write them to `/mnt/persistent/`.
+- **Session-Based Security Scoping:** Every user session is dynamically scoped. The backend automatically restricts persistent files and execution overlays to the active session folder (`/sessions/{session_id}/`). Directory traversal attempts to escape session boundaries are strictly denied, preventing cross-tenant or host-level access.
 
 ---
 
 ## 3. Code Breakdown and Repository Knowledge Graph
 
 ### File Structure & Roles
-- **`app/tools.py`**: Defines the `execute_python_code` tool. Checkpoints the current environment (via `os.environ["K_SERVICE"]`), isolates execution, manages the local Python path via `sys.executable`, and catches timeouts cleanly.
-- **`app/agent.py`**: Declares the `root_agent` configuration, instructions, and maps weather, time, and python sandbox tools.
-- **`tests/unit/test_tools.py`**: Standard PEP-8 unit tests validating sandbox execution, local fallback, production sandbox requirements, and timeout behaviors.
-- **`tests/integration/test_sandbox_agent.py`**: Validates agent configuration and tool registration.
+- **`app/tools.py`**: Defines the 5 granular Unix-style sandbox tools, private helper functions for resolving session directories, and resolving the sandbox binary path.
+- **`app/agent.py`**: Declares the `root_agent` configuration, instructions, and registers the 5 granular sandbox tools, handling dynamic session scoping via callbacks.
+- **`tests/unit/test_tools.py`**: Standard PEP-8 unit tests validating sandbox command construction, session directory scoping, and environment handling under mocked sandbox execution.
+- **`tests/integration/test_agent.py`**: Validates agent configuration and tool registration.
 - **`deploy.sh`**: Command-line deployment wrapper using the Google Cloud SDK.
 
 ### Repo Knowledge Graph
@@ -74,7 +73,7 @@ graph TD
 
     subgraph Tests
         E[tests/unit/test_tools.py] --> C
-        F[tests/integration/test_sandbox_agent.py] --> B
+        F[tests/integration/test_agent.py] --> B
         G[tests/eval/datasets/basic-dataset.json]
     end
 
@@ -88,115 +87,151 @@ graph TD
 
 ---
 
-## 4. How to Run & Deploy
+## 4. The 5 Granular Sandbox Tools
 
-### Local Installation
-1. Ensure `uv` and the Google Cloud SDK are installed on your machine.
-2. Install project dependencies:
-   ```bash
-   agents-cli install
-   ```
+The legacy monolithic execution tools have been refactored into five clean, Unix-style tools designed for secure execution management inside the sandbox:
 
-### Running Local Tests
-Unit and integration tests run system-independently by mocking environment details:
-```bash
-uv run --env-file .env pytest
-```
+| Tool Name | Parameters | Description |
+|-----------|------------|-------------|
+| `run_python_script` | `code`, `write`, `sync_tar`, `env` | Runs a Python script block inside the sandbox ephemeral filesystem. |
+| `run_sandbox_command` | `command`, `write`, `sync_tar`, `env` | Synchronously executes an arbitrary CLI command/process within a `sandbox do` container. |
+| `start_background_sandbox` | `sandbox_name`, `command`, `write`, `env` | Starts a detached background sandbox session running a persistent command. |
+| `execute_in_background_sandbox` | `sandbox_name`, `command` | Runs a command inside a previously started background sandbox using `sandbox exec`. |
+| `stop_background_sandbox` | `sandbox_name` | Stops and deletes an active background sandbox session using `sandbox delete`. |
 
-### Interactive Local Testing (Playground)
-Launch the local ADK developer playground to interact with the agent:
-```bash
-agents-cli playground
-```
+---
+
+## 5. How to Run & Deploy
 
 ### Deployment to Cloud Run
-To deploy the agent to Cloud Run with the **Cloud Run Sandbox** launcher enabled, use the deployment wrapper:
+To deploy the agent application to Cloud Run with the **Cloud Run Sandbox** launcher and isolated configuration, execute the deployment helper:
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
 ```
 
----
-
-## 5. Agent Sandbox Challenge: Stateful Data Processing Pipeline
-
-To test the agent's full capabilities (isolated execution, background daemons, snapshotting, and persistent bind mounting), you can present the agent with the following multi-turn challenge. 
-
-This challenge tasks the agent with building a background data processor that reads raw inputs from the host container, computes outputs inside a background sandbox, writes them directly back to the GCS FUSE bucket via a security-scoped bind mount, and exports a snapshot of the worker.
-
-### Phase 1: Host Data Preparation
-*   **Prompt:** `Create a directory named 'pipeline' in our session folder and write a CSV file named 'raw_inputs.csv' containing five numbers: 10, 20, 30, 40, 50 (one per line).`
-*   **Tool call (`execute_python_code`):**
-    ```python
-    execute_python_code(
-        code="""import os
-path = '/sessions/{session_id}/pipeline'
-os.makedirs(path, exist_ok=True)
-with open(f'{path}/raw_inputs.csv', 'w') as f:
-    f.write('10\\n20\\n30\\n40\\n50\\n')
-"""
-    )
-    ```
-
-### Phase 2: Start Background Worker with Bind Mount
-*   **Prompt:** `Create a python worker script inside our 'pipeline' directory that reads 'raw_inputs.csv', multiplies each number by 10, and writes the results to 'processed_outputs.csv', then sleeps for 1 hour. Start a background detached sandbox named 'pipeline-worker' running this script, mapping our 'pipeline' directory to '/mnt/data' in the sandbox.`
-*   **Tool calls (`execute_python_code` & `execute_sandbox_command`):**
-    *   **Write the script:**
-        ```python
-        execute_python_code(
-            code="""with open('/sessions/{session_id}/pipeline/worker.py', 'w') as f:
-    f.write('''import time
-with open("/mnt/data/raw_inputs.csv", "r") as f_in:
-    nums = [int(line.strip()) for line in f_in if line.strip()]
-processed = [str(n * 10) for n in nums]
-with open("/mnt/data/processed_outputs.csv", "w") as f_out:
-    f_out.write("\\n".join(processed) + "\\n")
-time.sleep(3600)
-''')"""
-        )
-        ```
-    *   **Start the background sandbox:**
-        ```python
-        execute_sandbox_command(
-            command=["python3", "/mnt/data/worker.py"],
-            detach=True,
-            sandbox_name="pipeline-worker",
-            write=True,
-            mounts=["type=bind,source=/sessions/{session_id}/pipeline,destination=/mnt/data"]
-        )
-        ```
-
-### Phase 3: Monitor & Verify the Pipeline Output
-*   **Prompt:** `Verify the pipeline results. Check if '/mnt/data/processed_outputs.csv' exists inside the sandbox, and verify its final content by printing the file from the host's pipeline directory.`
-*   **Tool calls:**
-    *   **Check inside the sandbox:**
-        ```python
-        execute_sandbox_command(
-            command=["ls", "-la", "/mnt/data/processed_outputs.csv"],
-            exec_on_sandbox="pipeline-worker"
-        )
-        ```
-    *   **Read host file (GCS FUSE):**
-        ```python
-        execute_python_code(
-            code="with open('/sessions/{session_id}/pipeline/processed_outputs.csv') as f: print(f.read())"
-        )
-        ```
-
-### Phase 4: Snapshot and Shutdown
-*   **Prompt:** `Create a filesystem tar snapshot of the 'pipeline-worker' sandbox and save it as 'worker_snapshot.tar' inside our session's pipeline directory.`
-*   **Tool call (`execute_sandbox_command`):**
-    ```python
-    execute_sandbox_command(
-        tar_sandbox="pipeline-worker",
-        tar_file="/sessions/{session_id}/pipeline/worker_snapshot.tar"
-    )
-    ```
+### Running the Agent
+Once deployed, query the remote agent service using `agents-cli run` by pointing to its deployed Cloud Run URL:
+```bash
+agents-cli run --url https://<your-cloud-run-url> --mode adk "Compute the first 10 Fibonacci numbers."
+```
 
 ---
 
-## 6. Gotchas
+## 6. Session Viewer (Streamlit GUI)
 
-- **Local Execution Security:** When running the agent locally during development, the tool runs code on the developer's host machine. Ensure you do not pass untrusted scripts locally.
-- **Production Isolation Check:** If you deploy this service to Cloud Run without the `--sandbox-launcher` flag, the application will detect the production environment (`K_SERVICE` env var) and fail execution immediately to prevent Remote Code Execution (RCE) on the main container.
-- **Outbound Network:** By default, scripts cannot access external APIs. If network access is required, the agent must set `allow_network=True` to instruct the sandbox utility to append the `--allow-egress` flag.
+This project includes a local **Streamlit GUI** session viewer located under [tools/session-viewer/](tools/session-viewer/) to inspect historical agent execution logs, timelines, and LLM call-by-call telemetry from BigQuery without writing SQL queries.
+
+### Setup & Launch
+1. Ensure your Google SDK application default credentials are configured:
+   ```bash
+   gcloud auth application-default login
+   ```
+2. Run the Streamlit application local server:
+   ```bash
+   cd tools/session-viewer
+   uv run streamlit run app.py
+   ```
+3. Open `http://localhost:8501` in your browser. Overrides for project settings or session lookups can be customized in the sidebar config or via environment variables (e.g. `BQ_DATASET`).
+
+---
+
+### 7. Technical Demo Scenarios
+
+These 4 scenarios showcase the secure agent capabilities in action, mapping directly to the tool calls generated during the technical showcase demo:
+
+### Scenario 1: Code Isolation & Internet Egress Blocking
+*   **Goal**: Demonstrate that untrusted code runs in a zero-trust namespace with outbound internet access blocked by default.
+*   **Demo Flow**:
+    1.  **Local computation succeeds:**
+        *   *User:* "Compute the first 10 Fibonacci numbers."
+        *   *Agent Tool Call:*
+            ```python
+            run_python_script(code="def fib(n): ...; print(fib(10))")
+            ```
+        *   *Output:* Succeeds.
+    2.  **Internet access is blocked:**
+        *   *User:* "Download the google.com homepage and print its length."
+        *   *Agent Tool Call:*
+            ```python
+            run_python_script(code="import urllib.request; urllib.request.urlopen('https://www.google.com')")
+            ```
+        *   *Output:* Returns a DNS lookup failure (`Temporary failure in name resolution`), proving the security egress block is active.
+
+### Scenario 2: Session State Persistence (Sync Tar)
+*   **Goal**: Demonstrate state preservation across separate ephemeral sandbox invocations using state tarball imports/exports.
+*   **Demo Flow**:
+    1.  **Write and export state:**
+        *   *User:* "Write 5 customer names to `customers.csv` inside the sandbox and export our state as `state.tar`."
+        *   *Agent Tool Call:*
+            ```python
+            run_python_script(
+                code="with open('customers.csv', 'w') as f: ...",
+                write=True,
+                sync_tar="state.tar"
+            )
+            ```
+    2.  **Import state and read:**
+        *   *User:* "Read the customer CSV file we created in the previous step and print the names in uppercase."
+        *   *Agent Tool Call:*
+            ```python
+            run_python_script(
+                code="with open('customers.csv', 'r') as f: ...",
+                write=True,
+                sync_tar="state.tar"
+            )
+            ```
+
+### Scenario 3: Persistent Background Services (Run & Exec)
+*   **Goal**: Demonstrate starting a background container daemon and executing interactive commands inside its active namespace.
+*   **Demo Flow**:
+    1.  **Start daemon in background:**
+        *   *User:* "Start a background web server named `web-server` on port 8000."
+        *   *Agent Tool Call:*
+            ```python
+            start_background_sandbox(
+                sandbox_name="web-server",
+                command=["/usr/local/bin/python3", "-m", "http.server", "8000"],
+                write=True
+            )
+            ```
+    2.  **Execute command inside the server:**
+        *   *User:* "Query our background web-server to verify it is running."
+        *   *Agent Tool Call:*
+            ```python
+            execute_in_background_sandbox(
+                sandbox_name="web-server",
+                command=["/usr/local/bin/python3", "-c", "import urllib.request; print(urllib.request.urlopen('http://localhost:8000').status)"]
+            )
+            ```
+
+### Scenario 4: Persistent Session Storage
+*   **Goal**: Demonstrate secure, persistent storage that automatically spans separate sandbox containers and execution tools (both Python scripts and CLI commands) inside the active session.
+*   **Demo Flow**:
+    1.  **Write to persistent directory via Python:**
+        *   *User:* "Write a file to my persistent folder with text 'Hello Host' using Python."
+        *   *Agent Tool Call:*
+            ```python
+            run_python_script(
+                code="with open('/mnt/persistent/proof.txt', 'w') as f:\n    f.write('Hello Host')",
+                write=True
+            )
+            ```
+        *   *Result:* Writes directly to `/mnt/persistent/proof.txt` (which the host dynamically maps to `/sessions/{session_id}/persistent/`).
+    2.  **Verify persistence in a new sandbox via CLI:**
+        *   *User:* "Start a new sandbox and read the file content from the persistent directory using cat."
+        *   *Agent Tool Call:*
+            ```python
+            run_sandbox_command(
+                command=["cat", "/mnt/persistent/proof.txt"]
+            )
+            ```
+        *   *Result:* Displays `'Hello Host'`, verifying files are preserved and accessible across separate sandbox lifecycles and different tools in the same session.
+
+---
+
+## 8. Gotchas
+
+- **Exclusive Sandbox Execution:** All fallback execution logic has been removed. Execution targets the Cloud Run Sandbox environment exclusively, requiring the native `sandbox` utility binary to be present (throwing a `FileNotFoundError` otherwise). Ensure tests use mocks/patches when running on machines without the `sandbox` utility.
+- **Session Scoping Validation:** To protect against directory traversal, path validation restricts all state tar output destinations (`sync_tar`) to the active session directory (e.g., `/sessions/{session_id}`).
+- **Forced Egress Block:** Outbound network calls inside the sandbox are blocked unconditionally. All network parameter overrides are ignored by the backend, ensuring a secure environment against exfiltration.

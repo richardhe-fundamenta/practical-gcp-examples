@@ -1,346 +1,331 @@
+import os
 import subprocess
 from unittest.mock import MagicMock, patch
+import pytest
 
-from app.tools import execute_python_code, execute_sandbox_command
+from app.tools import (
+    _get_sandbox_path,
+    _get_session_directory,
+    run_python_script,
+    run_sandbox_command,
+    start_background_sandbox,
+    execute_in_background_sandbox,
+    stop_background_sandbox,
+)
+
+
+# =====================================================================
+# Private Helper Tests
+# =====================================================================
 
 
 @patch("shutil.which")
-def test_execute_python_code_local_fallback(mock_which: MagicMock) -> None:
+@patch("os.path.exists")
+def test_get_sandbox_path_found(mock_exists: MagicMock, mock_which: MagicMock) -> None:
+    mock_which.return_value = "/usr/bin/sandbox"
+    assert _get_sandbox_path() == "/usr/bin/sandbox"
+
     mock_which.return_value = None
-    # Test local fallback execution of simple print
-    code = "print('hello from local fallback')"
-    res = execute_python_code(code, allow_network=False)
+    mock_exists.return_value = True
+    assert _get_sandbox_path() == "/usr/local/gcp/bin/sandbox"
+
+
+@patch("shutil.which")
+@patch("os.path.exists")
+def test_get_sandbox_path_not_found(mock_exists: MagicMock, mock_which: MagicMock) -> None:
+    mock_which.return_value = None
+    mock_exists.return_value = False
+    with pytest.raises(FileNotFoundError):
+        _get_sandbox_path()
+
+
+def test_session_directory_creates_persistent_folder() -> None:
+    allowed_prefix = _get_session_directory(None)[2]
+    expected_path = os.path.join(allowed_prefix, "persistent")
+    assert os.path.isdir(expected_path) is True
+
+
+# =====================================================================
+# Public Tool Tests (MOCKED Sandbox Environment)
+# =====================================================================
+
+
+@patch("app.tools._get_sandbox_path")
+@patch("subprocess.run")
+def test_run_python_script_sandbox_success(
+    mock_run: MagicMock, mock_get_path: MagicMock
+) -> None:
+    mock_get_path.return_value = "/usr/bin/sandbox"
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = "hello from sandbox\n"
+    mock_result.stderr = ""
+    mock_run.return_value = mock_result
+
+    res = run_python_script(code="print('hello')", tool_context=None)
 
     assert res["status"] == "success"
-    assert "hello from local fallback" in res["stdout"]
+    assert res["stdout"] == "hello from sandbox\n"
+    assert res["stderr"] == ""
     assert res["returncode"] == 0
-    assert not res["sandboxed"]
+    assert res["sandboxed"] is True
 
-
-@patch("shutil.which")
-@patch("subprocess.run")
-def test_execute_python_code_with_sandbox(
-    mock_run: MagicMock, mock_which: MagicMock
-) -> None:
-    mock_which.return_value = "/usr/bin/sandbox"
-
-    mock_result = MagicMock()
-    mock_result.returncode = 0
-    mock_result.stdout = "hello from sandbox"
-    mock_result.stderr = ""
-    mock_run.return_value = mock_result
-
-    code = "print('hello')"
-    res = execute_python_code(code, allow_network=False)
-
-    assert res["status"] == "success"
-    assert res["stdout"] == "hello from sandbox"
-    assert res["sandboxed"]
-
-    # Assert sandbox was called without egress
     args, _ = mock_run.call_args
     cmd = args[0]
-    assert "sandbox" in cmd[0]
+    assert cmd[0] == "/usr/bin/sandbox"
     assert cmd[1] == "do"
+    assert "--write" not in cmd
     assert "--allow-egress" not in cmd
+    assert "--mount" in cmd
+    mount_idx = cmd.index("--mount")
+    allowed_prefix = _get_session_directory(None)[2]
+    assert cmd[mount_idx + 1] == f"type=bind,source={allowed_prefix}/persistent,destination=/mnt/persistent"
 
 
-@patch("shutil.which")
+@patch("app.tools._get_sandbox_path")
 @patch("subprocess.run")
-def test_execute_python_code_with_sandbox_and_network(
-    mock_run: MagicMock, mock_which: MagicMock
+def test_run_python_script_sandbox_with_args(
+    mock_run: MagicMock, mock_get_path: MagicMock
 ) -> None:
-    mock_which.return_value = "/usr/bin/sandbox"
+    mock_get_path.return_value = "/usr/bin/sandbox"
 
     mock_result = MagicMock()
     mock_result.returncode = 0
-    mock_result.stdout = "fetched content"
+    mock_result.stdout = "sandbox run output\n"
     mock_result.stderr = ""
     mock_run.return_value = mock_result
 
-    code = "import urllib.request; print(urllib.request.urlopen('http://example.com').read())"
-    res = execute_python_code(code, allow_network=True)
+    allowed_prefix = _get_session_directory(None)[2]
+    sync_tar_path = f"{allowed_prefix}/state.tar"
+
+    res = run_python_script(
+        code="print('hello')",
+        write=True,
+        sync_tar=sync_tar_path,
+        env={"FOO": "BAR"},
+        tool_context=None,
+    )
 
     assert res["status"] == "success"
-    assert res["sandboxed"]
+    assert res["stdout"] == "sandbox run output\n"
+    assert res["stderr"] == ""
+    assert res["returncode"] == 0
+    assert res["sandboxed"] is True
 
-    # Assert sandbox was called with egress
     args, _ = mock_run.call_args
     cmd = args[0]
-    assert "sandbox" in cmd[0]
+    assert cmd[0] == "/usr/bin/sandbox"
     assert cmd[1] == "do"
-    assert "--allow-egress" in cmd
+    assert "--write" in cmd
+    assert "--allow-egress" not in cmd
+    assert f"--sync-tar={sync_tar_path}" in cmd
+    env_idx = cmd.index("--env")
+    assert cmd[env_idx + 1] == "FOO=BAR"
+    assert "--mount" in cmd
+    mount_idx = cmd.index("--mount")
+    assert cmd[mount_idx + 1] == f"type=bind,source={allowed_prefix}/persistent,destination=/mnt/persistent"
 
 
-@patch("shutil.which")
-@patch("subprocess.run")
-@patch.dict("os.environ", {"K_SERVICE": "my-service"})
-def test_execute_python_code_production_no_sandbox(
-    mock_run: MagicMock, mock_which: MagicMock
-) -> None:
-    mock_which.return_value = None
+@patch("app.tools._get_sandbox_path")
+def test_run_python_script_sandbox_not_found(mock_get_path: MagicMock) -> None:
+    mock_get_path.side_effect = FileNotFoundError("Sandbox launcher binary was not found.")
 
-    code = "print('hello')"
-    res = execute_python_code(code, allow_network=False)
-
+    res = run_python_script(code="print('hello')", tool_context=None)
     assert res["status"] == "error"
-    assert "Sandbox execution is required in production" in res["stderr"]
-    assert not res["sandboxed"]
-    mock_run.assert_not_called()
-
-
-@patch("shutil.which")
-@patch("subprocess.run")
-def test_execute_python_code_timeout(
-    mock_run: MagicMock, mock_which: MagicMock
-) -> None:
-    mock_which.return_value = None
-    mock_run.side_effect = subprocess.TimeoutExpired(cmd=["python"], timeout=10.0)
-
-    code = "print('hello')"
-    res = execute_python_code(code, allow_network=False)
-
-    assert res["status"] == "error"
-    assert (
-        "Execution timed out after 10 seconds. Check for infinite loops or blockages."
-        in res["stderr"]
-    )
+    assert "Sandbox launcher binary" in res["stderr"]
     assert res["returncode"] == -1
-    assert not res["sandboxed"]
 
 
-@patch("shutil.which")
+@patch("app.tools._get_sandbox_path")
 @patch("subprocess.run")
-@patch("os.path.exists")
-def test_execute_python_code_first_run_export(
-    mock_exists: MagicMock, mock_run: MagicMock, mock_which: MagicMock
+def test_run_sandbox_command_sandboxed(
+    mock_run: MagicMock, mock_get_path: MagicMock
 ) -> None:
-    mock_which.return_value = "/usr/bin/sandbox"
-    mock_exists.return_value = False  # No pre-existing state tar
-
+    mock_get_path.return_value = "/usr/local/gcp/bin/sandbox"
     mock_result = MagicMock()
     mock_result.returncode = 0
-    mock_result.stdout = "first execution"
+    mock_result.stdout = "ls output"
     mock_result.stderr = ""
     mock_run.return_value = mock_result
 
-    res = execute_python_code("print('hello')", allow_network=False)
+    allowed_prefix = _get_session_directory(None)[2]
+    sync_tar_path = f"{allowed_prefix}/state.tar"
 
-    assert res["status"] == "success"
-    assert res["sandboxed"]
-
-    args, _ = mock_run.call_args
-    cmd = args[0]
-    assert "--write" in cmd
-    assert any(c.startswith("--export-tar=") and "sandbox_state_" in c for c in cmd)
-    assert not any(c.startswith("--import-tar=") for c in cmd)
-
-
-@patch("shutil.which")
-@patch("subprocess.run")
-@patch("os.path.exists")
-def test_execute_python_code_subsequent_run_import_export(
-    mock_exists: MagicMock, mock_run: MagicMock, mock_which: MagicMock
-) -> None:
-    mock_which.return_value = "/usr/bin/sandbox"
-    mock_exists.return_value = True  # Pre-existing state tar exists
-
-    mock_result = MagicMock()
-    mock_result.returncode = 0
-    mock_result.stdout = "stateful execution"
-    mock_result.stderr = ""
-    mock_run.return_value = mock_result
-
-    res = execute_python_code("print('hello')", allow_network=False)
-
-    assert res["status"] == "success"
-    assert res["sandboxed"]
-
-    args, _ = mock_run.call_args
-    cmd = args[0]
-    assert "--write" in cmd
-    assert any(c.startswith("--import-tar=") and "sandbox_state_" in c for c in cmd)
-    assert any(c.startswith("--export-tar=") and "sandbox_state_" in c for c in cmd)
-
-
-def test_execute_python_code_routes_streams() -> None:
-    import sys
-
-    code = "import sys; print('hello-stdout'); print('hello-stderr', file=sys.stderr)"
-    with (
-        patch.object(sys.stdout, "write") as mock_stdout_write,
-        patch.object(sys.stderr, "write") as mock_stderr_write,
-    ):
-        result = execute_python_code(code)
-        assert result["status"] == "success"
-        assert "hello-stdout" in result["stdout"]
-        assert "hello-stderr" in result["stderr"]
-        # Verify sys.stdout and sys.stderr received the output
-        mock_stdout_write.assert_any_call("hello-stdout\n")
-        mock_stderr_write.assert_any_call("hello-stderr\n")
-
-
-def test_execute_sandbox_command_formats_run():
-    with (
-        patch("shutil.which", return_value="/usr/local/gcp/bin/sandbox"),
-        patch("subprocess.run") as mock_run,
-    ):
-        mock_run.return_value = MagicMock(returncode=0, stdout="out", stderr="")
-
-        # Test running detached
-        execute_sandbox_command(
-            command=["/bin/sleep", "10m"],
-            detach=True,
-            sandbox_name="my-bg-sandbox",
-            write=True,
-            mounts=["type=bind,source=/tmp/default_session/vol,destination=/mnt/vol"],
-        )
-
-        expected_cmd = [
-            "/usr/local/gcp/bin/sandbox",
-            "run",
-            "my-bg-sandbox",
-            "--detach",
-            "--write",
-            "--mount",
-            "type=bind,source=/tmp/default_session/vol,destination=/mnt/vol",
-            "--",
-            "/bin/sleep",
-            "10m",
-        ]
-        mock_run.assert_called_with(
-            expected_cmd, capture_output=True, text=True, timeout=10
-        )
-
-
-def test_execute_sandbox_command_formats_exec():
-    with (
-        patch("shutil.which", return_value="/usr/local/gcp/bin/sandbox"),
-        patch("subprocess.run") as mock_run,
-    ):
-        mock_run.return_value = MagicMock(returncode=0, stdout="out", stderr="")
-
-        # Test executing inside existing named sandbox
-        execute_sandbox_command(
-            command=["/bin/echo", "hello"], exec_on_sandbox="my-bg-sandbox"
-        )
-
-        expected_cmd = [
-            "/usr/local/gcp/bin/sandbox",
-            "exec",
-            "my-bg-sandbox",
-            "--",
-            "/bin/echo",
-            "hello",
-        ]
-        mock_run.assert_called_with(
-            expected_cmd, capture_output=True, text=True, timeout=10
-        )
-
-
-def test_execute_sandbox_command_formats_tar():
-    with (
-        patch("shutil.which", return_value="/usr/local/gcp/bin/sandbox"),
-        patch("subprocess.run") as mock_run,
-    ):
-        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-
-        # Test creating a tar snapshot
-        execute_sandbox_command(
-            tar_sandbox="my-bg-sandbox", tar_file="/tmp/default_session/snapshot.tar"
-        )
-
-        expected_cmd = [
-            "/usr/local/gcp/bin/sandbox",
-            "tar",
-            "my-bg-sandbox",
-            "--file=/tmp/default_session/snapshot.tar",
-        ]
-        mock_run.assert_called_with(
-            expected_cmd, capture_output=True, text=True, timeout=10
-        )
-
-
-def test_execute_sandbox_command_tar_requires_file():
-    # 1. With sandbox available
-    with patch("shutil.which", return_value="/usr/local/gcp/bin/sandbox"):
-        res = execute_sandbox_command(tar_sandbox="my-bg-sandbox")
-        assert res["status"] == "error"
-        assert "tar_file is required when tar_sandbox is set." in res["stderr"]
-        assert res["sandboxed"]
-
-    # 2. Without sandbox available (local fallback)
-    with patch("shutil.which", return_value=None):
-        res = execute_sandbox_command(tar_sandbox="my-bg-sandbox")
-        assert res["status"] == "error"
-        assert "tar_file is required when tar_sandbox is set." in res["stderr"]
-        assert not res["sandboxed"]
-
-
-@patch("shutil.which")
-@patch("subprocess.run")
-def test_execute_sandbox_command_local_fallback(
-    mock_run: MagicMock, mock_which: MagicMock
-) -> None:
-    mock_which.return_value = None
-
-    mock_result = MagicMock()
-    mock_result.returncode = 0
-    mock_result.stdout = "hello from local"
-    mock_result.stderr = ""
-    mock_run.return_value = mock_result
-
-    cmd = ["echo", "hello"]
-    res = execute_sandbox_command(command=cmd)
-
-    assert res["status"] == "success"
-    assert res["stdout"] == "hello from local"
-    assert not res["sandboxed"]
-    mock_run.assert_called_with(cmd, capture_output=True, text=True, timeout=10)
-
-
-@patch("shutil.which")
-@patch("subprocess.run")
-def test_execute_sandbox_command_routes_streams(
-    mock_run: MagicMock, mock_which: MagicMock
-) -> None:
-    import sys
-
-    mock_which.return_value = None
-
-    mock_result = MagicMock()
-    mock_result.returncode = 0
-    mock_result.stdout = "hello-stdout\n"
-    mock_result.stderr = "hello-stderr\n"
-    mock_run.return_value = mock_result
-
-    with (
-        patch.object(sys.stdout, "write") as mock_stdout_write,
-        patch.object(sys.stderr, "write") as mock_stderr_write,
-    ):
-        result = execute_sandbox_command(command=["echo", "hello"])
-        assert result["status"] == "success"
-        assert "hello-stdout" in result["stdout"]
-        assert "hello-stderr" in result["stderr"]
-        # Verify sys.stdout and sys.stderr received the output
-        mock_stdout_write.assert_any_call("hello-stdout\n")
-        mock_stderr_write.assert_any_call("hello-stderr\n")
-
-
-def test_execute_sandbox_command_mount_restriction() -> None:
-    # Test mounting directory outside the allowed session directory /tmp/default_session
-    res = execute_sandbox_command(
+    res = run_sandbox_command(
         command=["ls"],
-        mounts=["type=bind,source=/tmp/other_session,destination=/mnt/val"],
+        write=True,
+        sync_tar=sync_tar_path,
+        env={"MY_ENV": "VALUE"},
     )
-    assert res["status"] == "error"
-    assert "Permission denied: Mount source path" in res["stderr"]
+    assert res["status"] == "success"
+    assert res["stdout"] == "ls output"
+    assert res["stderr"] == ""
+    assert res["returncode"] == 0
+    assert res["sandboxed"] is True
+
+    expected_cmd = [
+        "/usr/local/gcp/bin/sandbox",
+        "do",
+        "--write",
+        f"--sync-tar={sync_tar_path}",
+        "--mount",
+        f"type=bind,source={allowed_prefix}/persistent,destination=/mnt/persistent",
+        "--env",
+        "MY_ENV=VALUE",
+        "--",
+        "ls",
+    ]
+    mock_run.assert_called_with(
+        expected_cmd, capture_output=True, text=True, timeout=30
+    )
 
 
-def test_execute_sandbox_command_tar_restriction() -> None:
-    # Test generating tar snapshot outside the allowed session directory /tmp/default_session
-    res = execute_sandbox_command(
-        tar_sandbox="my-sandbox", tar_file="/tmp/other_session/snapshot.tar"
+@patch("app.tools._get_sandbox_path")
+def test_run_python_script_sync_tar_restriction(mock_get_path: MagicMock) -> None:
+    mock_get_path.return_value = "/usr/bin/sandbox"
+    res = run_python_script(
+        code="print('hello')",
+        sync_tar="/tmp/unauthorized_dir/state.tar",
     )
     assert res["status"] == "error"
-    assert "Permission denied: tar_file path" in res["stderr"]
+    assert "Permission denied: sync_tar path" in res["stderr"]
+    assert res["stdout"] == ""
+    assert res["returncode"] == -1
+
+
+@patch("app.tools._get_sandbox_path")
+def test_run_sandbox_command_sync_tar_restriction(mock_get_path: MagicMock) -> None:
+    mock_get_path.return_value = "/usr/bin/sandbox"
+    res = run_sandbox_command(
+        command=["ls"],
+        sync_tar="/tmp/unauthorized_dir/state.tar",
+    )
+    assert res["status"] == "error"
+    assert "Permission denied: sync_tar path" in res["stderr"]
+    assert res["stdout"] == ""
+    assert res["returncode"] == -1
+
+
+@patch("app.tools._get_sandbox_path")
+@patch("subprocess.run")
+def test_start_background_sandbox_sandboxed(
+    mock_run: MagicMock, mock_get_path: MagicMock
+) -> None:
+    mock_get_path.return_value = "/usr/local/gcp/bin/sandbox"
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = "started detached"
+    mock_result.stderr = ""
+    mock_run.return_value = mock_result
+
+    allowed_prefix = _get_session_directory(None)[2]
+
+    res = start_background_sandbox(
+        sandbox_name="test-bg",
+        command=["sleep", "10"],
+        write=True,
+        env={"MY_ENV": "VALUE"},
+    )
+    assert res["status"] == "success"
+    assert res["stdout"] == "started detached"
+    assert res["stderr"] == ""
+    assert res["returncode"] == 0
+    assert res["sandboxed"] is True
+
+    expected_cmd = [
+        "/usr/local/gcp/bin/sandbox",
+        "run",
+        "default_session-test-bg",
+        "--detach",
+        "--write",
+        "--mount",
+        f"type=bind,source={allowed_prefix}/persistent,destination=/mnt/persistent",
+        "--env",
+        "MY_ENV=VALUE",
+        "--",
+        "sleep",
+        "10",
+    ]
+    mock_run.assert_called_with(
+        expected_cmd, capture_output=True, text=True, timeout=30
+    )
+
+
+@patch("app.tools._get_sandbox_path")
+@patch("subprocess.run")
+def test_execute_in_background_sandbox_sandboxed(
+    mock_run: MagicMock, mock_get_path: MagicMock
+) -> None:
+    mock_get_path.return_value = "/usr/local/gcp/bin/sandbox"
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = "exec success"
+    mock_result.stderr = ""
+    mock_run.return_value = mock_result
+
+    res = execute_in_background_sandbox(sandbox_name="test-bg", command=["ls"])
+    assert res["status"] == "success"
+    assert res["stdout"] == "exec success"
+    assert res["stderr"] == ""
+    assert res["returncode"] == 0
+    assert res["sandboxed"] is True
+
+    expected_cmd = ["/usr/local/gcp/bin/sandbox", "exec", "default_session-test-bg", "--", "ls"]
+    mock_run.assert_called_with(
+        expected_cmd, capture_output=True, text=True, timeout=30
+    )
+
+
+
+@patch("app.tools._get_sandbox_path")
+@patch("subprocess.run")
+def test_stop_background_sandbox_sandboxed(
+    mock_run: MagicMock, mock_get_path: MagicMock
+) -> None:
+    mock_get_path.return_value = "/usr/local/gcp/bin/sandbox"
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = "delete success"
+    mock_result.stderr = ""
+    mock_run.return_value = mock_result
+
+    res = stop_background_sandbox(sandbox_name="test-bg")
+    assert res["status"] == "success"
+    assert res["stdout"] == "delete success"
+    assert res["stderr"] == ""
+    assert res["returncode"] == 0
+    assert res["sandboxed"] is True
+
+    expected_cmd = ["/usr/local/gcp/bin/sandbox", "delete", "default_session-test-bg", "--force"]
+    mock_run.assert_called_with(
+        expected_cmd, capture_output=True, text=True, timeout=60
+    )
+
+
+@patch("app.tools._get_sandbox_path")
+@patch("subprocess.run")
+def test_run_python_script_relative_sync_tar(
+    mock_run: MagicMock, mock_get_path: MagicMock
+) -> None:
+    mock_get_path.return_value = "/usr/bin/sandbox"
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = "relative success"
+    mock_result.stderr = ""
+    mock_run.return_value = mock_result
+
+    res = run_python_script(
+        code="print('hello')",
+        sync_tar="relative_state.tar",
+    )
+
+    assert res["status"] == "success"
+    
+    allowed_prefix = _get_session_directory(None)[2]
+    expected_path = os.path.realpath(os.path.join(allowed_prefix, "relative_state.tar"))
+    
+    args, _ = mock_run.call_args
+    cmd = args[0]
+    assert f"--sync-tar={expected_path}" in cmd

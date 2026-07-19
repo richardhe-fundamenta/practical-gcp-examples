@@ -1,0 +1,11 @@
+[project]
+name = "a2a-session-viewer"
+version = "0.1.0"
+description = "Local Streamlit GUI to browse A2A agent sessions from the BigQuery completions view on a timeline."
+requires-python = ">=3.10"
+dependencies = [
+    "streamlit>=1.40",
+    "google-cloud-bigquery>=3.25",
+    "altair>=5",
+    "pandas>=2",
+]
