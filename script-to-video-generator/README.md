@@ -241,3 +241,45 @@ about it.
 | `docs/gui-gifs.py` | Rebuilds the two GUI slideshow GIFs from the `docs/gui-*.png` screenshots (`uv run python docs/gui-gifs.py`). |
 | `examples/talk.txt` | Sample script for `--mock --html-only` smoke tests. |
 | `tests/` | Fully offline pytest suite — no cloud calls, no API spend. |
+
+---
+
+## What a video costs
+
+For a ~90 second render — 7 slides, ~1,400 characters of script — measured
+against a real job execution (August 2026 list prices, `us-central1`):
+
+| Component | Gemini TTS | ElevenLabs | Where the number comes from |
+|---|---|---|---|
+| Compose (`gemini-3.6-flash`) | $0.04–0.08 | $0.04–0.08 | one call for the whole deck, plus up to 2 rubric repair rounds |
+| Voiceover | **$0.05** | **$0.23–0.26** | 2,363 audio tokens vs ~1,400 credits |
+| Cloud Run Job | $0.05 | $0.04 | measured 5m32s–7m22s at 4 vCPU / 8 GiB |
+| **Total** | **~$0.14–0.18** | **~$0.31–0.38** | |
+
+**The voice is the whole story.** Gemini TTS bills audio output at $20 per 1M
+tokens at 25 tokens per second, so a 94.5s narration is 2,363 tokens ≈ **$0.05**.
+ElevenLabs `eleven_multilingual_v2` bills 1 credit per character, and ~1,400
+characters on the Creator plan ($22 / 121k credits) is ≈ **$0.25** — about **5×**.
+It buys a cloned voice, not a cheaper render. Everything else is near-identical
+between the two.
+
+**Compose barely moves.** The system prompt is ~7k characters (~1.7k tokens) and
+your script adds a few hundred, so input is ~$0.002. The cost is output: seven
+scenes of Rough.js plus dynamic thinking (`thinking_budget=-1`, billed as
+output), an estimated 8–12k tokens. Each repair round adds roughly $0.02. This is
+the softest number here — the token counts are estimated, not logged.
+
+**Infrastructure rounds to zero at this volume.** One render is 4 vCPU × ~420s =
+1,680 vCPU-seconds against Cloud Run's 240k vCPU-second monthly free tier —
+roughly **140 renders a month before the compute bill starts**. The web service
+scales to zero, so idling costs nothing, and each mp4 is ~4 MB in GCS. The only
+standing cost is Artifact Registry holding the base image: a few tens of cents a
+month.
+
+**How it scales:** voiceover tracks *audio duration*, compose tracks *slide
+count*, the Job tracks both. Tripling video length roughly triples the voice
+cost while leaving compose almost flat.
+
+One aside: ElevenLabs returns word timestamps inline, so it skips the whisper
+forced-alignment pass and finishes the Job sooner. Real, but small — nowhere near
+enough to offset the voice premium.
