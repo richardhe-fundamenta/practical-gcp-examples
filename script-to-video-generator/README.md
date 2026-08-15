@@ -70,16 +70,7 @@ draft** restores it. Nothing reaches the renderer until you hit Generate.
 defaults are fine for a normal run, and **Generated videos** at the bottom lists
 finished renders from GCS, newest-first.
 
-<details>
-<summary><b>Screenshots — the main form, Advanced, and the downloads list</b></summary>
-<br>
-<img src="docs/gui-form.png" width="560"
-     alt="Web UI: title, verbatim script, and the optional Gemini reword panel">
-<img src="docs/gui-advanced.png" width="560"
-     alt="Advanced settings: voice engine, voice, model, Vertex project and location, scene review toggle">
-<img src="docs/gui-outputs.png" width="560"
-     alt="Generated videos list with prepare and save buttons">
-</details>
+![The GUI in three steps: the main form, the Advanced settings, and the list of generated videos](docs/gui-tour.gif)
 
 #### Reviewing scenes before you spend a render
 
@@ -90,16 +81,7 @@ narration and the cue phrases that pin each drawn element to a moment in the
 voiceover. Edit them, redraw a visual you don't like, then approve; only then
 does the render Job start.
 
-<details>
-<summary><b>Screenshots — compose progress, slide preview, cue editing</b></summary>
-<br>
-<img src="docs/gui-review-progress.png" width="560"
-     alt="Progress while the visuals are composed for seven slides">
-<img src="docs/gui-review-slide.png" width="440"
-     alt="Slide preview: a hand-drawn chalkboard scene with its narration underneath">
-<img src="docs/gui-review-cues.png" width="560"
-     alt="Cue list with regenerate, approve, and discard controls">
-</details>
+![The review loop: composing the visuals, previewing a slide, then editing its cues before approving](docs/gui-review.gif)
 
 ### Tests
 
