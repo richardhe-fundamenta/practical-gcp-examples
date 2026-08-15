@@ -1,5 +1,11 @@
 # Script to Video Generator 🎬
 
+[![Subscribe on YouTube](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.socialcounts.org%2Fyoutube-live-subscriber-count%2FUC3XbEkSbPOzHvqNBrjNIu7A&query=%24.counters.api.subscriberCount&label=Subscribe&suffix=%20subscribers&color=FF0000&logo=youtube&logoColor=white&style=for-the-badge)](https://www.youtube.com/@practicalgcp2780?sub_confirmation=1)
+[![Videos](https://img.shields.io/badge/90%2B_videos-Watch_all-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/playlist?list=UU3XbEkSbPOzHvqNBrjNIu7A)
+
+_Code from the [PracticalGCP](https://www.youtube.com/@practicalgcp2780) YouTube channel._
+
+
 Give it your script; get back a 9:16 hand-drawn "chalkboard" video with a
 voiceover. Your words are narrated **verbatim** — nothing rewrites, shortens, or
 fact-checks them. The LLM's only job is to *draw*: it authors bespoke Rough.js

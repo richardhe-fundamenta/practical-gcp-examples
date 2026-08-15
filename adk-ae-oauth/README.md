@@ -1,5 +1,11 @@
 # ADK Agent Engine + OAuth — Google Drive Reader
 
+[![Subscribe on YouTube](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.socialcounts.org%2Fyoutube-live-subscriber-count%2FUC3XbEkSbPOzHvqNBrjNIu7A&query=%24.counters.api.subscriberCount&label=Subscribe&suffix=%20subscribers&color=FF0000&logo=youtube&logoColor=white&style=for-the-badge)](https://www.youtube.com/@practicalgcp2780?sub_confirmation=1)
+[![Videos](https://img.shields.io/badge/90%2B_videos-Watch_all-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/playlist?list=UU3XbEkSbPOzHvqNBrjNIu7A)
+
+_Code from the [PracticalGCP](https://www.youtube.com/@practicalgcp2780) YouTube channel._
+
+
 A production-ready ADK agent deployed on **Vertex AI Agent Engine** with **OAuth 2.0** support for reading Google Drive files on behalf of authenticated users. Works both locally via **ADK Web UI** and in production via **Gemini Enterprise**.
 
 Built with [Agent Starter Pack](https://github.com/GoogleCloudPlatform/agent-starter-pack) (`adk` template, `agent_engine` deployment target).
