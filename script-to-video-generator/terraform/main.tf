@@ -322,6 +322,13 @@ resource "google_cloud_run_v2_service" "web" {
     service_account  = google_service_account.web.email
     session_affinity = true # keep the Streamlit WebSocket on one instance
 
+    # Streamlit runs the whole session over one long-lived WebSocket request, so
+    # the request timeout is really the session lifetime. At the 300s default,
+    # Cloud Run cut the socket mid-generation and the browser reconnected into a
+    # fresh session — losing the in-memory draft that "Review & edit scenes"
+    # depends on. An hour comfortably covers a compose run.
+    timeout = "3600s"
+
     scaling {
       min_instance_count = 0 # scale to zero
       max_instance_count = 1 # single instance; Streamlit session state is in-memory
