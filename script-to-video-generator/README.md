@@ -84,7 +84,8 @@ up front, in the browser, instead of firing straight at the Job:
 Each slide gets a live preview of the real scene — the same harness the recorder
 uses — with its spoken narration below it:
 
-![Slide preview: a hand-drawn chalkboard scene with its narration underneath](docs/gui-review-slide.png)
+<img src="docs/gui-review-slide.png" width="625"
+     alt="Slide preview: a hand-drawn chalkboard scene with its narration underneath">
 
 Underneath are the cue phrases that pin each drawn element to a moment in the
 voiceover. Edit them, redraw a visual you don't like, then approve — only then
