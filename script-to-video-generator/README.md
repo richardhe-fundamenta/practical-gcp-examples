@@ -17,6 +17,16 @@ Here's a real one — a script about graph-based agents for ADK, start to finish
 
 ---
 
+## Contents
+
+- [Quick start](#quick-start) — [CLI](#cli) · [Web UI](#web-ui) · [Tests](#tests)
+- [Architecture](#architecture) — [deployed system](#deployed-system) · [the three gates](#the-three-gates) · [why the voice sync is accurate](#why-the-voice-sync-is-accurate)
+- [Cloud Run rendering](#cloud-run-rendering) — [access control](#access-control) · [infrastructure (Terraform)](#infrastructure-terraform)
+- [What each file does](#what-each-file-does) — [entrypoints](#entrypoints) · [authoring the visuals](#authoring-the-visuals) · [recording](#recording) · [infrastructure](#infrastructure)
+- [What a video costs](#what-a-video-costs)
+
+---
+
 ## Quick start
 
 **Prerequisites:** Python 3.13+, [uv](https://docs.astral.sh/uv/), `ffmpeg`, and
