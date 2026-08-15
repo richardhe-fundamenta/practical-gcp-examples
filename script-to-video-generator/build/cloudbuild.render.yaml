@@ -1,0 +1,8 @@
+# Build the thin render app image (Dockerfile) FROM the prebuilt base. Needs a
+# build config (not `--tag`) to pass --build-arg BASE. Invoked by terraform/main.tf's
+# image_build, which pins _BASE to the current base image digest tag.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "build/Dockerfile", "--build-arg", "BASE=${_BASE}", "-t", "${_IMAGE}", "."]
+images:
+  - "${_IMAGE}"

@@ -1,0 +1,10 @@
+# Build the heavy render base image (Dockerfile.base). Needs a build config (not
+# `--tag`) to select the non-default Dockerfile. E2_HIGHCPU_8 cuts the ~10m
+# torch/whisper build. Invoked by infra/main.tf's render_base_build.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "Dockerfile.base", "-t", "${_IMAGE}", "."]
+images:
+  - "${_IMAGE}"
+options:
+  machineType: 'E2_HIGHCPU_8'

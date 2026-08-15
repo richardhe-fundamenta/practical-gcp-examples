@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+.DS_Store
+
+# Generated model cache (regenerable)
+.cache/
+
+# Root .gitignore ignores build/ (Python packaging); ours holds Dockerfiles
+!build/
+
+# Terraform
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+terraform/terraform.tfvars
+
+# Rendered videos + render scratch (regenerable, large; live in GCS in prod)
+output/
+
+# Manim render scratch
+media/
+
+# graphify extraction cache (regenerable)
+graphify-out/cache/
+graphify-out/.graphify_python
+graphify-out/.graphify_root

@@ -1,0 +1,17 @@
+# Slim image for the Streamlit web service. Unlike the render image it needs no
+# Chromium/ffmpeg — it only dispatches Cloud Run Job executions and reads GCS.
+FROM python:3.13-slim
+
+RUN pip install --no-cache-dir uv
+
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+COPY deck ./deck
+COPY app.py ./app.py
+ENV PYTHONPATH=/app
+
+# Cloud Run sets $PORT (8080). Streamlit binds it; session affinity keeps the
+# WebSocket on this instance.
+ENTRYPOINT ["sh", "-c", "uv run --no-dev streamlit run app.py --server.port ${PORT:-8080} --server.address 0.0.0.0 --server.headless true"]

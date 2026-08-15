@@ -1,0 +1,25 @@
+[project]
+name = "script-to-video-generator"
+version = "0.1.0"
+description = "Narrate a script verbatim over LLM-drawn concept visuals, recorded to mp4."
+authors = [
+    {name = "Author"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.13.4,<3.0.0",
+    "streamlit>=1.59.1,<2.0.0",
+    "google-cloud-storage>=3.13.1",
+    "google-cloud-run>=0.16.1",
+    "playwright>=1.62.0",
+    "google-genai>=2.17.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1,<10.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

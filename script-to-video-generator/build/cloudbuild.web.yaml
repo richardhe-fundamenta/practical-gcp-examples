@@ -1,0 +1,8 @@
+# Build the slim web-service image from Dockerfile.service.
+# `gcloud builds submit --tag` always uses ./Dockerfile, so the web image needs
+# an explicit build config. Invoked by terraform/main.tf's web_image_build.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "build/Dockerfile.service", "-t", "${_IMAGE}", "."]
+images:
+  - "${_IMAGE}"

@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars and adjust for your environment.
+infra_project = "rocketech-de-pgcp-sandbox"
+region        = "us-central1"
+bucket_name   = "script-to-video-rocketech-de-pgcp-sandbox"
+
+# Where the render's Vertex AI / TTS calls run (GUI sidebar project_id).
+# Leave empty to reuse infra_project.
+render_project = ""

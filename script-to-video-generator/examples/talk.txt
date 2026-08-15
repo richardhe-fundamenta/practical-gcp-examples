@@ -1,0 +1,7 @@
+Every cache starts as a good idea and ends as a source of bugs. The moment you store a copy of something, you own the question of when that copy becomes a lie.
+
+There are only two hard parts. Knowing when the data underneath has changed, and deciding what to do with the readers who arrive while you are finding out.
+
+Time-based expiry dodges the first question entirely. You accept that the copy is stale for up to sixty seconds, and in exchange you never have to track what changed.
+
+Invalidation on write answers it properly, but now every writer has to know every cache that holds its data. That coupling is the real cost, and it is why the naive version is often the right one.

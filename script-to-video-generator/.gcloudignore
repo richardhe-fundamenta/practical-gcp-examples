@@ -1,0 +1,16 @@
+# Keep the Cloud Build upload context small. The image only needs
+# Dockerfile, pyproject.toml, uv.lock, and deck/.
+.git/
+.venv/
+.cache/
+output/
+media/
+.pytest_cache/
+.superpowers/
+__pycache__/
+docs/
+tests/
+/terraform/
+*.md
+*.tfstate
+*.tfstate.*

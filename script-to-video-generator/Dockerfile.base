@@ -1,0 +1,37 @@
+# Heavy, rarely-changing base for the render job: ffmpeg, all app Python deps,
+# headless Chromium, and the whisper forced-alignment env (torch + tiny model).
+# None of this depends on deck/** source, so it's built once and reused — the
+# thin app image (Dockerfile) just adds `COPY deck` on top. Rebuild this only
+# when deps (pyproject.toml / uv.lock) or this recipe change.
+FROM python:3.13-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv
+
+# Fixed cache locations so build-time warmups are found at runtime regardless of
+# $HOME (Cloud Run may differ): uv wheel/python caches and the whisper model
+# cache (openai-whisper reads XDG_CACHE_HOME) all live under /opt, baked into the
+# image layers below.
+ENV UV_CACHE_DIR=/opt/uv/cache \
+    UV_PYTHON_INSTALL_DIR=/opt/uv/python \
+    XDG_CACHE_HOME=/opt/cache \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# Headless Chromium (+ its OS deps) for recording the chalkboard HTML.
+RUN uv run --no-dev playwright install --with-deps chromium
+
+# Pre-warm the isolated forced-alignment env used by deck/record.py. whisper-
+# timestamped's torch/numba chain has no wheels for the app's Python 3.13, so
+# record.py shells out to `uv run --no-project --python 3.11 --with whisper-
+# timestamped`. Installing that env's wheels and downloading the tiny model now
+# means each render job builds the env from a warm cache instead of pulling ~1GB
+# of torch (and the model) over the network on every execution.
+RUN uv python install 3.11 \
+    && uv run --no-project --python 3.11 --with whisper-timestamped \
+         python -c "import whisper_timestamped as w; w.load_model('tiny')"
