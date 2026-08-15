@@ -1,17 +1,17 @@
 # Script to Video Generator 🎬
 
-<!-- GitHub renders a bare same-repo media URL as an inline player -->
-
-https://github.com/richardhe-fundamenta/practical-gcp-examples/raw/main/script-to-video-generator/docs/example-graph-agent.mp4
-
-*A paragraph of script per scene, in — this out.*
-
 Give it your script; get back a 9:16 hand-drawn "chalkboard" video with a
 voiceover. Your words are narrated **verbatim** — nothing rewrites, shortens, or
 fact-checks them. The LLM's only job is to *draw*: it authors bespoke Rough.js
 visualization code per paragraph, which is statically safety-vetted before it
 ever runs, and every element is pinned to a spoken cue phrase so the drawing
 stays locked to the voice.
+
+Here's a real one — a script about graph-based agents for ADK, start to finish:
+
+[![Preview of a generated video: hand-drawn scenes revealing in time with the narration](docs/example-preview.gif)](docs/example-graph-agent.mp4)
+
+*First 10 seconds, silent loop — [play the full 94s with audio](docs/example-graph-agent.mp4).*
 
 ![The pipeline: script in, three stages, mp4 out](docs/pipeline.svg)
 
