@@ -192,3 +192,51 @@ terraform apply
 The heavy **base** image (`Dockerfile.base`) rebuilds only when
 `pyproject.toml`/`uv.lock` change. The thin **app** image (`build/Dockerfile`)
 rebuilds on `deck/` edits — fast, since it just layers `COPY deck` onto the base.
+
+---
+
+## What each file does
+
+Roughly 3k lines total, so reading a module is usually quicker than reading
+about it.
+
+### Entrypoints
+
+| Path | What it does |
+|---|---|
+| `app.py` | Streamlit GUI — title + script, the reword panel, the optional scene review, and the downloads list. Mirrors the `deck.gen.generate` CLI. |
+| `deck/gen/generate.py` | The pipeline and CLI entrypoint: split paragraphs → compose → gates → verbatim lock → build the deck HTML → record. |
+| `deck/infra/job.py` | Cloud Run Job side: `dispatch_deck_job` fire-and-forget from the GUI, `save_draft`/`dispatch_draft_job` for a reviewed deck, and the in-job `__main__` that renders and uploads. |
+
+### Authoring the visuals
+
+| Path | What it does |
+|---|---|
+| `deck/visual/compose.py` | The one LLM call per run: paragraph → bespoke Rough.js scene JS + cue phrases. Narration is locked; the model only draws. |
+| `deck/visual/rubric.py` | Gate 1 — scores composed JSON for known failure modes (over-dense steps, duplicate labels, non-verbatim or end-bunched cues) and hands the model back its own JSON plus the problem list, up to 2 repair rounds. |
+| `deck/visual/safety.py` | Gate 2 — statically vets the model-written JS without executing it, blanking anything reaching for network, storage, DOM, or `eval` while keeping its reveal group. |
+| `deck/visual/integrity.py` | Gate 3 — repairs sloppy-but-safe code: broken string literals, exact-duplicate draws, anything still unparseable. |
+| `deck/visual/scene.py` | The scene-kit harness. `build_html()` assembles the recorded page; `build_preview_html()` renders one slide for the GUI. |
+| `deck/visual/vendor/` | Vendored `rough.js`, `anime.min.js`, and the two handwriting fonts — no CDN, since the renderer runs with no network egress. |
+| `deck/gen/reword.py` | Pre-submit draft rewrite behind the GUI's **Reword** button. The only place an LLM rewrites your words, and it never runs during a render. |
+| `deck/gen/review.py` | Human-in-the-loop helpers: `invalid_cues` validation, `snap_cue` repair, and single-slide redraw. |
+
+### Recording
+
+| Path | What it does |
+|---|---|
+| `deck/render/record.py` | TTS per slide (Gemini or ElevenLabs), forced alignment, Chromium capture, mux to mp4. |
+| `deck/render/sandbox_render.py` | The isolated Chromium step — the only place model-authored JS actually executes, with zero egress and no credentials. |
+| `deck/render/_align.py` | Forced alignment in an isolated Python 3.11 subprocess (whisper-timestamped's torch stack has no 3.13 wheels), plus `_resolve_reveal_times` and absolute-deadline scheduling. |
+
+### Infrastructure
+
+| Path | What it does |
+|---|---|
+| `deck/infra/gcs.py` | Thin `GCS` wrapper — upload/download of files, JSON, bytes, and directory trees. The bucket layout it's used with is `jobs/<id>.json` payloads, `drafts/<id>.json` reviewed decks, `output/*.mp4` renders. |
+| `deck/infra/sandbox_probe.py` | On-cloud check that the real sandbox path still records, run against a trivial 1-slide deck. |
+| `terraform/` | Bucket, Artifact Registry repo, least-privilege service accounts, image builds, the Cloud Run Job, and the IAP-fronted web service. |
+| `Dockerfile.base`, `build/` | Heavy base image and the thin app/web images, with their Cloud Build configs. |
+| `docs/diagrams.js` | Generates the three README SVGs with the same vendored Rough.js the videos use (`node docs/diagrams.js`). Seeded, so output is byte-stable. |
+| `examples/talk.txt` | Sample script for `--mock --html-only` smoke tests. |
+| `tests/` | Fully offline pytest suite — no cloud calls, no API spend. |
