@@ -60,42 +60,46 @@ uv run streamlit run app.py
 Enter a **Title**, paste your **Script**, hit **Generate** — the render runs in
 the background on a Cloud Run Job.
 
-![Web UI: title, verbatim script, and the optional Gemini reword panel](docs/gui-form.png)
-
 Since the script is spoken verbatim, a rough draft rarely fits as-is. Open
 **✍️ Reword with Gemini**, paste everything you want to cover, and steer the
 rewrite in plain English ("cut it to 45 seconds", "open with the punchiest
 line"). Each reword re-runs from your *original* draft, so changing the steer
 re-steers rather than drifting further from what you wrote; **↩︎ Back to my
 draft** restores it. Nothing reaches the renderer until you hit Generate.
+**Advanced** holds the voice engine, voice, model, and Vertex settings —
+defaults are fine for a normal run, and **Generated videos** at the bottom lists
+finished renders from GCS, newest-first.
 
-**Advanced** holds the voice engine, voice, model, and Vertex settings — defaults
-are fine for a normal run.
-
-![Advanced settings: voice engine, voice, model, Vertex project and location, scene review toggle](docs/gui-advanced.png)
+<details>
+<summary><b>Screenshots — the main form, Advanced, and the downloads list</b></summary>
+<br>
+<img src="docs/gui-form.png" width="560"
+     alt="Web UI: title, verbatim script, and the optional Gemini reword panel">
+<img src="docs/gui-advanced.png" width="560"
+     alt="Advanced settings: voice engine, voice, model, Vertex project and location, scene review toggle">
+<img src="docs/gui-outputs.png" width="560"
+     alt="Generated videos list with prepare and save buttons">
+</details>
 
 #### Reviewing scenes before you spend a render
 
 Tick **Review & edit scenes before rendering** and Generate composes the visuals
-up front, in the browser, instead of firing straight at the Job:
-
-![Progress while the visuals are composed for seven slides](docs/gui-review-progress.png)
-
-Each slide gets a live preview of the real scene — the same harness the recorder
-uses — with its spoken narration below it:
-
-<img src="docs/gui-review-slide.png" width="625"
-     alt="Slide preview: a hand-drawn chalkboard scene with its narration underneath">
-
-Underneath are the cue phrases that pin each drawn element to a moment in the
-voiceover. Edit them, redraw a visual you don't like, then approve — only then
+up front, in the browser, instead of firing straight at the Job. Each slide gets
+a live preview of the real scene — the same harness the recorder uses — with its
+narration and the cue phrases that pin each drawn element to a moment in the
+voiceover. Edit them, redraw a visual you don't like, then approve; only then
 does the render Job start.
 
-![Cue list with regenerate, approve, and discard controls](docs/gui-review-cues.png)
-
-Finished renders show up under **Generated videos**, newest-first.
-
-![Generated videos list with prepare and save buttons](docs/gui-outputs.png)
+<details>
+<summary><b>Screenshots — compose progress, slide preview, cue editing</b></summary>
+<br>
+<img src="docs/gui-review-progress.png" width="560"
+     alt="Progress while the visuals are composed for seven slides">
+<img src="docs/gui-review-slide.png" width="440"
+     alt="Slide preview: a hand-drawn chalkboard scene with its narration underneath">
+<img src="docs/gui-review-cues.png" width="560"
+     alt="Cue list with regenerate, approve, and discard controls">
+</details>
 
 ### Tests
 
