@@ -238,5 +238,6 @@ about it.
 | `terraform/` | Bucket, Artifact Registry repo, least-privilege service accounts, image builds, the Cloud Run Job, and the IAP-fronted web service. |
 | `Dockerfile.base`, `build/` | Heavy base image and the thin app/web images, with their Cloud Build configs. |
 | `docs/diagrams.js` | Generates the three README SVGs with the same vendored Rough.js the videos use (`node docs/diagrams.js`). Seeded, so output is byte-stable. |
+| `docs/gui-gifs.py` | Rebuilds the two GUI slideshow GIFs from the `docs/gui-*.png` screenshots (`uv run python docs/gui-gifs.py`). |
 | `examples/talk.txt` | Sample script for `--mock --html-only` smoke tests. |
 | `tests/` | Fully offline pytest suite — no cloud calls, no API spend. |
