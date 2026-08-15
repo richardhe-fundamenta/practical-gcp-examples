@@ -9,9 +9,9 @@ stays locked to the voice.
 
 Here's a real one — a script about graph-based agents for ADK, start to finish:
 
-[![Preview of a generated video: hand-drawn scenes revealing in time with the narration](docs/example-preview.gif)](docs/example-graph-agent.mp4)
+[![Preview of a generated video: hand-drawn scenes revealing in time with the narration](docs/example-preview.gif)](https://github.com/richardhe-fundamenta/practical-gcp-examples/raw/main/script-to-video-generator/docs/example-graph-agent.mp4)
 
-*First 10 seconds, silent loop — [play the full 94s with audio](docs/example-graph-agent.mp4).*
+*First 10 seconds, silent loop — [play the full 94s with audio](https://github.com/richardhe-fundamenta/practical-gcp-examples/raw/main/script-to-video-generator/docs/example-graph-agent.mp4).*
 
 ![The pipeline: script in, three stages, mp4 out](docs/pipeline.svg)
 
