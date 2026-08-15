@@ -5,7 +5,7 @@ Code from the [**PracticalGCP** YouTube channel](https://www.youtube.com/@practi
 Pub/Sub, Cloud Run and Dataplex. Not slideware — the things that actually broke, and how they
 were fixed.
 
-[![Subscribe on YouTube](https://img.shields.io/youtube/channel/subscribers/UC3XbEkSbPOzHvqNBrjNIu7A?style=for-the-badge&logo=youtube&logoColor=white&label=Subscribe&color=FF0000)](https://www.youtube.com/@practicalgcp2780?sub_confirmation=1)
+[![Subscribe on YouTube](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.socialcounts.org%2Fyoutube-live-subscriber-count%2FUC3XbEkSbPOzHvqNBrjNIu7A&query=%24.counters.api.subscriberCount&label=Subscribe&suffix=%20subscribers&color=FF0000&logo=youtube&logoColor=white&style=for-the-badge)](https://www.youtube.com/@practicalgcp2780?sub_confirmation=1)
 [![Videos](https://img.shields.io/badge/90%2B_videos-Watch_all-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/playlist?list=UU3XbEkSbPOzHvqNBrjNIu7A)
 
 [![PracticalGCP on YouTube](docs/channel.png)](https://www.youtube.com/@practicalgcp2780/videos)
