@@ -1,0 +1,19 @@
+Every explainer video costs you the same three things: a script, a set of visuals, and the tedious work of lining the two up. This tool takes the script from you and does the other two itself.
+
+The bet here is unusual. Most tools let the model rewrite your words and then draw from a fixed template library. This one inverts it: your script is spoken verbatim, and the model's only job is to author the drawing code.
+
+So the language model never touches your narration. It writes JavaScript against a small sketching kit, and after it answers, your original paragraph is force-restored over whatever it echoed back. One blank line in your draft is one scene on screen.
+
+Letting a model write code you then execute is the obvious danger, so nothing it writes is trusted. A rubric scores the composition, a static pass blanks any reach for the network or the page, and a repair pass fixes what is merely sloppy.
+
+The code that survives is handed to the Cloud Run agent sandbox, and that sandbox is the real boundary. A headless browser runs inside it with no credentials and no route out to the network, drawing the page while the frames are captured.
+
+Timing is where these videos usually fall apart. Fixed delays drift, because speech durations vary and machines run hot, so every element instead carries a cue phrase copied word for word from your narration.
+
+The finished audio is then aligned to that narration, giving the start time of every spoken word. Each drawing waits for its cue to actually be said, against an absolute clock, so a shape appears exactly as you name it.
+
+If you would rather not trust the machine, tick review before rendering. Every slide comes back as a live preview with editable cues, and nothing goes to the renderer until you approve it.
+
+The split is simple. A Cloud Run service hosts the interface, including that review step, while a Cloud Run job runs the actual pipeline in the background. Identity-Aware Proxy guards the front, and both scale to zero.
+
+A ninety second video costs about fifteen cents with Google's voice, or roughly thirty five with a cloned one. The voice is nearly the whole bill, and the compute is very likely free.
