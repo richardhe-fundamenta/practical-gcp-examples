@@ -62,23 +62,39 @@ the background on a Cloud Run Job.
 
 ![Web UI: title, verbatim script, and the optional Gemini reword panel](docs/gui-form.png)
 
-**Advanced** holds the voice engine, voice, model, and Vertex settings — defaults
-are fine for a normal run.
-
-![Advanced settings: voice engine, voice, model, Vertex project and location, scene review toggle](docs/gui-advanced.png)
-
-Finished renders show up under **Generated videos**, newest-first.
-
-![Generated videos list with prepare and save buttons](docs/gui-outputs.png)
-
 Since the script is spoken verbatim, a rough draft rarely fits as-is. Open
 **✍️ Reword with Gemini**, paste everything you want to cover, and steer the
 rewrite in plain English ("cut it to 45 seconds", "open with the punchiest
 line"). Each reword re-runs from your *original* draft, so changing the steer
 re-steers rather than drifting further from what you wrote; **↩︎ Back to my
-draft** restores it. Nothing reaches the renderer until you hit Generate. Tick **Review & edit scenes before rendering**
-to preview each scene, fix cues, and redraw a visual first. **Generated videos**
-lists finished renders from GCS, newest-first.
+draft** restores it. Nothing reaches the renderer until you hit Generate.
+
+**Advanced** holds the voice engine, voice, model, and Vertex settings — defaults
+are fine for a normal run.
+
+![Advanced settings: voice engine, voice, model, Vertex project and location, scene review toggle](docs/gui-advanced.png)
+
+#### Reviewing scenes before you spend a render
+
+Tick **Review & edit scenes before rendering** and Generate composes the visuals
+up front, in the browser, instead of firing straight at the Job:
+
+![Progress while the visuals are composed for seven slides](docs/gui-review-progress.png)
+
+Each slide gets a live preview of the real scene — the same harness the recorder
+uses — with its spoken narration below it:
+
+![Slide preview: a hand-drawn chalkboard scene with its narration underneath](docs/gui-review-slide.png)
+
+Underneath are the cue phrases that pin each drawn element to a moment in the
+voiceover. Edit them, redraw a visual you don't like, then approve — only then
+does the render Job start.
+
+![Cue list with regenerate, approve, and discard controls](docs/gui-review-cues.png)
+
+Finished renders show up under **Generated videos**, newest-first.
+
+![Generated videos list with prepare and save buttons](docs/gui-outputs.png)
 
 ### Tests
 
