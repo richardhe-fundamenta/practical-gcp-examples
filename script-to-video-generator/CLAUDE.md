@@ -8,7 +8,7 @@ There are no other modes — no research, no deck DSL, no fact-check.
 ## Map
 
 | Path | What |
-|---|---|
+| --- | --- |
 | `app.py` | Streamlit GUI (Title + Script) + optional human-in-the-loop scene review. Mirrors the `deck.gen.generate` CLI. |
 | `deck/gen/generate.py` | The pipeline: paragraph split → compose → gates → **verbatim lock** → `compile_deck` → record. CLI entrypoint. |
 | `deck/gen/reword.py` | Pre-submit draft rewrite (GUI **Reword** button). The one place an LLM rewrites your words; never runs during a render. |
@@ -37,7 +37,7 @@ fails locally without `ffmpeg`/`ffprobe` installed; that is environmental, not a
 
 ## Knowledge graph
 
-`graphify-out/` holds a graph of this repo (473 nodes, 888 edges), updated after
+`graphify-out/` holds a graph of this repo (490 nodes, 963 edges), updated after
 the script-only refactor. The doc nodes from `README.md`/`CLAUDE.md` are still the
 pre-refactor ones (semantic extraction was skipped) — code nodes are current.
 

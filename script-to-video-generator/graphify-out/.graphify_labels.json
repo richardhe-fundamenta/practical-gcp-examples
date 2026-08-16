@@ -1,1 +1,25 @@
-{"0": "Rough.js Sketch Vendor", "1": "Streamlit GUI & Job Dispatch", "2": "Voice Recording & Alignment", "3": "Anime.js Vendor", "4": "Pipeline Architecture Concepts (stale docs)", "5": "Visual Compose & Cue Repair", "6": "Chromium Render Sandbox", "7": "Rough.js Generator Internals", "8": "GCS Storage Wrapper", "9": "App Authentication", "10": "Scene JS Quality Gates", "11": "Script Pipeline Core", "12": "App UI Tests", "13": "Forced Alignment Helper", "14": "Visual Package Docstring", "15": "Streamlit Cache Decorator", "16": "Pydantic BaseModel Ref", "17": "deck.gen Package", "18": "Pydantic BaseModel Ref (dup)", "19": "deck.infra Package", "20": "deck Package", "21": "deck.render Package", "22": "Repository Root"}
+{
+  "0": "Rough.js Sketch Vendor",
+  "1": "Streamlit GUI & Job Dispatch",
+  "2": "Voice Recording & Alignment",
+  "3": "Anime.js Vendor",
+  "4": "Pipeline Architecture Concepts (stale docs)",
+  "5": "Visual Compose & Cue Repair",
+  "6": "Chromium Render Sandbox",
+  "7": "Rough.js Generator Internals",
+  "8": "GCS Storage Wrapper",
+  "9": "App Authentication",
+  "10": "Scene JS Quality Gates",
+  "11": "Script Pipeline Core",
+  "12": "App UI Tests",
+  "13": "Forced Alignment Helper",
+  "14": "Visual Package Docstring",
+  "15": "Streamlit Cache Decorator",
+  "16": "Pydantic BaseModel Ref",
+  "17": "deck.gen Package",
+  "18": "Pydantic BaseModel Ref (dup)",
+  "19": "deck.infra Package",
+  "20": "deck Package",
+  "21": "deck.render Package",
+  "22": "Repository Root"
+}
