@@ -13,7 +13,26 @@ visualization code per paragraph, which is statically safety-vetted before it
 ever runs, and every element is pinned to a spoken cue phrase so the drawing
 stays locked to the voice.
 
-Here's a real one — a script about graph-based agents for ADK, start to finish:
+## What you give it, and what comes back
+
+You write plain text. One blank-line-separated paragraph per scene, in the voice
+you want spoken — no markup, no shot list, no storyboard:
+
+> Every explainer video costs you the same three things: a script, a set of
+> visuals, and the tedious work of lining the two up. This tool takes the script
+> from you and does the other two itself.
+>
+> The bet here is unusual. Most tools let the model rewrite your words and then
+> draw from a fixed template library. This one inverts it: your script is spoken
+> verbatim, and the model's only job is to author the drawing code.
+
+That's the opening of [`examples/about-this-repo.txt`](examples/about-this-repo.txt)
+— 10 paragraphs, 383 words, describing this repo. Feeding it in produced the
+animation in the walkthrough below, which also covers how the whole thing works:
+
+[![Watch: Script to Video Agent on Cloud Run](docs/youtube-walkthrough.jpg)](https://youtu.be/9df5oDVd0Iw)
+
+Here's another render on its own — a script about graph-based agents for ADK:
 
 [![Preview of a generated video: hand-drawn scenes revealing in time with the narration](docs/example-preview.gif)](https://github.com/richardhe-fundamenta/practical-gcp-examples/raw/main/script-to-video-generator/docs/example-graph-agent.mp4)
 
@@ -25,6 +44,7 @@ Here's a real one — a script about graph-based agents for ADK, start to finish
 
 ## Contents
 
+- [What you give it, and what comes back](#what-you-give-it-and-what-comes-back)
 - [Quick start](#quick-start) — [CLI](#cli) · [Web UI](#web-ui) · [Tests](#tests)
 - [Architecture](#architecture) — [deployed system](#deployed-system) · [the three gates](#the-three-gates) · [why the voice sync is accurate](#why-the-voice-sync-is-accurate)
 - [Cloud Run rendering](#cloud-run-rendering) — [access control](#access-control) · [infrastructure (Terraform)](#infrastructure-terraform)
