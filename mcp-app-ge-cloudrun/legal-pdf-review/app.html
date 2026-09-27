@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Legal PDF Review</title>
+</head>
+<body>
+  <main class="main">
+    <header class="app-header">
+      <h4>Legal PDF Review</h4>
+      <p class="subtitle">Upload · find the clause · validate · summarize</p>
+    </header>
+
+    <section class="bar">
+      <div class="field">
+        <label for="file">Upload PDF</label>
+        <input type="file" id="file" accept="application/pdf">
+      </div>
+      <button type="button" id="upload-btn">Upload</button>
+      <div class="field grow">
+        <label for="doc">Document</label>
+        <select id="doc"></select>
+      </div>
+    </section>
+
+    <form class="bar" id="search-form">
+      <div class="field grow">
+        <label for="query">Find</label>
+        <input type="text" id="query" placeholder="e.g. What are the indemnification obligations?">
+      </div>
+      <button type="submit" id="find-btn">Find section</button>
+    </form>
+
+    <p id="status" class="status" role="status"></p>
+
+    <section class="viewer" id="viewer" hidden>
+      <div class="nav">
+        <button type="button" id="prev">‹ Prev</button>
+        <span id="page-label"></span>
+        <button type="button" id="next">Next ›</button>
+        <span class="spacer"></span>
+        <button type="button" id="validate-btn" class="secondary">Validate highlight</button>
+        <button type="button" id="summarize-btn" disabled>Summarize</button>
+      </div>
+      <div class="page-wrap" id="page-wrap">
+        <img id="page-img" alt="PDF page">
+        <div id="overlay"></div>
+      </div>
+    </section>
+
+    <section class="summary" id="summary-box" hidden>
+      <h5>Summary</h5>
+      <p id="summary-text"></p>
+      <button type="button" id="send-btn">Send to conversation</button>
+    </section>
+  </main>
+  <script type="module" src="/src/app.ts"></script>
+</body>
+</html>

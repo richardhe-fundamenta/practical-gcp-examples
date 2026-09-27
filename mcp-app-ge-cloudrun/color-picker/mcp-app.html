@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Color Picker</title>
+</head>
+<body>
+  <main class="main">
+    <div class="swatch" id="swatch" aria-hidden="true"></div>
+
+    <div class="picker">
+      <label class="picker-label" for="color-input">Pick a color</label>
+      <input type="color" id="color-input" value="#3b82f6">
+    </div>
+
+    <div class="readout">
+      <label for="hex-input">Hex</label>
+      <input type="text" id="hex-input" value="#3b82f6" spellcheck="false"
+             autocapitalize="off" autocomplete="off" maxlength="7">
+      <p class="rgb"><strong>RGB:</strong> <code id="rgb-value">59, 130, 246</code></p>
+    </div>
+
+    <button id="use-color-btn">Use this color</button>
+  </main>
+  <script type="module" src="/src/mcp-app.ts"></script>
+</body>
+</html>

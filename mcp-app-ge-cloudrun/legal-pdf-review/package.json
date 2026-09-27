@@ -1,0 +1,42 @@
+{
+  "name": "legal-pdf-review-mcp-app",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP App for legal professionals to upload a PDF, find + highlight a section, validate, and summarize back into Gemini Enterprise",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && cross-env INPUT=app.html vite build",
+    "watch": "cross-env INPUT=app.html vite build --watch",
+    "serve": "tsx main.ts",
+    "serve:stdio": "tsx main.ts --stdio",
+    "start": "cross-env NODE_ENV=development npm run build && npm run serve",
+    "dev": "cross-env NODE_ENV=development concurrently \"npm run watch\" \"tsx --watch main.ts\"",
+    "test": "tsx src/checks.test.ts"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.14.0",
+    "@google/genai": "^1.0.0",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/express": "2.0.0",
+    "@modelcontextprotocol/ext-apps": "^2.0.0",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.0",
+    "@types/node": "22.10.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.3.0"
+  }
+}

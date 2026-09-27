@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>BigQuery Financial Reports</title>
+</head>
+<body>
+  <main class="main">
+    <header class="report-header">
+      <h4>Financial Reports</h4>
+      <p class="subtitle">Read-only revenue analytics · <code>thelook_ecommerce</code></p>
+    </header>
+
+    <form class="controls" id="controls">
+      <div class="field">
+        <label for="start-date">From</label>
+        <input type="date" id="start-date">
+      </div>
+      <div class="field">
+        <label for="end-date">To</label>
+        <input type="date" id="end-date">
+      </div>
+      <div class="field">
+        <label for="grain">Grain</label>
+        <select id="grain">
+          <option value="day">Day</option>
+          <option value="month" selected>Month</option>
+          <option value="quarter">Quarter</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="dimension">Group by</label>
+        <select id="dimension">
+          <option value="category" selected>Category</option>
+          <option value="brand">Brand</option>
+          <option value="department">Department</option>
+          <option value="traffic_source">Traffic source</option>
+          <option value="country">Country</option>
+        </select>
+      </div>
+      <div class="field actions">
+        <button type="submit" id="run-btn">Run report</button>
+        <button type="button" id="estimate-btn" class="secondary">Estimate cost</button>
+      </div>
+    </form>
+
+    <div class="viewbar">
+      <div class="chart-types" role="group" aria-label="Chart type">
+        <button type="button" data-chart="line" class="chip active">Trend (line)</button>
+        <button type="button" data-chart="bar" class="chip">Top-N (bar)</button>
+        <button type="button" data-chart="pie" class="chip">Share (pie)</button>
+      </div>
+      <div class="field topn-field">
+        <label for="topn">Top N</label>
+        <input type="number" id="topn" min="1" max="20" value="8">
+      </div>
+      <button type="button" id="csv-btn" class="secondary">Download CSV</button>
+    </div>
+
+    <p id="status" class="status" role="status"></p>
+
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+
+    <table class="pop-table" id="pop-table" hidden>
+      <thead>
+        <tr><th>Period</th><th>Revenue</th><th>&Delta;</th><th>%</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <script type="module" src="/src/report.ts"></script>
+</body>
+</html>

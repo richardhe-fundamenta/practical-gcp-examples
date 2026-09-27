@@ -1,0 +1,135 @@
+.main {
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+}
+
+.report-header h4 {
+  margin: 0;
+}
+.subtitle {
+  margin: var(--spacing-xs) 0 0;
+  color: color-mix(in srgb, var(--color-text-primary) 65%, transparent);
+}
+
+.controls,
+.viewbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+.field label {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-heading-sm-size);
+}
+
+input,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  padding: var(--spacing-sm);
+  border: var(--border-width-regular) solid
+    color-mix(in srgb, var(--color-text-primary) 25%, transparent);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
+
+.actions {
+  flex-direction: row;
+  gap: var(--spacing-sm);
+}
+
+button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-bold);
+  background-color: var(--color-accent);
+  cursor: pointer;
+}
+button:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 85%, var(--color-background-inverse));
+}
+button:focus-visible {
+  outline: calc(var(--border-width-regular) * 2) solid var(--color-ring-primary);
+  outline-offset: var(--border-width-regular);
+}
+button.secondary {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border: var(--border-width-regular) solid
+    color-mix(in srgb, var(--color-text-primary) 30%, transparent);
+}
+
+.viewbar {
+  justify-content: space-between;
+  border-top: var(--border-width-regular) solid
+    color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  padding-top: var(--spacing-md);
+}
+.chart-types {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+.chip {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border: var(--border-width-regular) solid
+    color-mix(in srgb, var(--color-text-primary) 25%, transparent);
+  font-weight: var(--font-weight-normal);
+}
+.chip.active {
+  background-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border-color: var(--color-accent);
+}
+.topn-field {
+  flex-direction: row;
+  align-items: center;
+}
+.topn-field input {
+  width: 4rem;
+}
+
+.status {
+  margin: 0;
+  min-height: 1.25em;
+  color: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
+  font-size: var(--font-heading-sm-size);
+}
+
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+.pop-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-heading-sm-size);
+}
+.pop-table th,
+.pop-table td {
+  text-align: right;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-bottom: var(--border-width-regular) solid
+    color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+}
+.pop-table th:first-child,
+.pop-table td:first-child {
+  text-align: left;
+}

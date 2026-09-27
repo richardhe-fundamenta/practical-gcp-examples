@@ -1,0 +1,6 @@
+node_modules
+dist
+.venv
+.git
+*.log
+examples
