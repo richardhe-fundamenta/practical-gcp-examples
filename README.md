@@ -17,6 +17,7 @@ the code — each folder has its own README with setup steps.
 
 | Folder | What it shows | Video |
 |---|---|---|
+| [`mcp-app-ge-cloudrun`](./mcp-app-ge-cloudrun) | Interactive MCP Apps (color picker, BigQuery dashboard, PDF review) on Cloud Run, rendered in Gemini Enterprise | [▶ Interactive MCP Apps in Gemini Enterprise](https://youtu.be/j134jnmLbzQ) |
 | [`cloudrun-agent-sandbox`](./cloudrun-agent-sandbox) | Secure code interpreter on the native Cloud Run Sandbox | [▶ Agent Sandbox on Cloud Run](https://youtu.be/LgEcEPAa2iQ) |
 | [`a2a-with-gke-sandbox`](./a2a-with-gke-sandbox) | A2A agent running untrusted LLM code in a GKE Agent Sandbox (gVisor) | [▶ A2A Agent with Secure GKE Agent Sandbox](https://youtu.be/4sLzV4rtZak) |
 | [`build-with-agents-cli`](./build-with-agents-cli) | Scaffolding ADK agents with Antigravity + agents-cli | [▶ One-shotting ADK Agents](https://youtu.be/JZXOhsFakPk) |
