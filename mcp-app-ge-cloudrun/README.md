@@ -160,11 +160,17 @@ Custom MCP Server**, fill in:
 |-------|-------|
 | MCP Server URL | your Cloud Run `/mcp` URL |
 | Authorization URL | `https://accounts.google.com/o/oauth2/auth` |
-| Authorization URL Parameters | `&access_type=offline` (allows automatic token refresh) |
+| Authorization URL Parameters | `&access_type=offline&prompt=consent` (both required — see note below) |
 | Token URL | `https://oauth2.googleapis.com/token` |
 | Client ID & Secret | from Step 3 |
 | Scopes | `openid email profile https://www.googleapis.com/auth/cloud-platform` |
 | Enable PKCE Support | Enabled |
+
+> **Refresh tokens need both parameters.** `access_type=offline` asks Google for
+> a refresh token; `prompt=consent` makes sure Gemini Enterprise actually
+> refreshes the access token when it expires. With `access_type=offline` alone,
+> tool calls start failing with **401 Unauthorized** once the first token
+> expires, and the connector stays stuck until the user logs in again.
 
 Click **Login**, complete the Google auth prompt, then provide a **Description**
 and **Instructions** telling the model when to call the example's tool (see the
