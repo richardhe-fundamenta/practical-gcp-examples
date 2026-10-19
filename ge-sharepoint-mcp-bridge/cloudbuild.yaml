@@ -1,0 +1,29 @@
+# Tests, builds and rolls out a new image. Terraform owns the Cloud Run
+# service definition; this pipeline only swaps the container image.
+substitutions:
+  _REGION: us-central1
+  _REPO: spmcp-images
+  _SERVICE: sharepoint-mcp-bridge
+
+steps:
+  - id: test
+    name: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    entrypoint: bash
+    args: ["-c", "uv sync --frozen && uv run pytest -q"]
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$BUILD_ID", "."]
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$BUILD_ID"]
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args: ["run", "services", "update", "${_SERVICE}", "--region=${_REGION}",
+           "--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$BUILD_ID"]
+
+options:
+  logging: CLOUD_LOGGING_ONLY

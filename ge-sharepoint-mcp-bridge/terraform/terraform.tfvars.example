@@ -1,0 +1,6 @@
+project_id = "your-project-id"
+
+# prefix         = "spmcp"
+# region         = "us-central1"
+# gateway_region = "us-central1"
+# extra_invokers = ["user:you@example.com"]

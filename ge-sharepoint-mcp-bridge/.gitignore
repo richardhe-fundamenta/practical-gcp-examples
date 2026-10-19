@@ -1,0 +1,16 @@
+__pycache__/
+*.py[oc]
+.venv/
+.pytest_cache/
+dist/
+build/
+*.egg-info
+
+# Terraform: state and real variable files stay local
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+tfplan
+crash.log
